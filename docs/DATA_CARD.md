@@ -43,9 +43,11 @@ evaluation sample is drawn from the test split with seed `20261020` — see `doc
 
 | artifact | size (≈) | purpose |
 |---|---|---|
-| `dataset_spatial_v3.tar.gz` | 1.2 GB | full dataset (manifest + frames + GT) — required for zero-shot evaluation |
-| `spatial_v3_features.tar.gz` | 446 MB | frozen Qwen3.8-27B slot features + 13-dim slot geometry, for local-heads reproduction / training |
-| `v3_heads.tar` (separate, optional) | 150 MB | organizers' reference baseline heads — not required for evaluation, not part of the benchmark |
+| `dataset_spatial_v3.tar` | 1.2 GB | full dataset (manifest + frames + GT) — this is all a participant needs |
+
+Frozen backbone features and the organizers' model weights are **not** part of the benchmark
+release: participants only need the task data; every entry, including ours, is ranked from its
+published model outputs through the unified schema.
 
 Cloud providers' raw outputs used for the public board are **not** redistributed; every row can be
 reproduced by re-running the model through the published `chat_vlm` adapter.
