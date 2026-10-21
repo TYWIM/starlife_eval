@@ -1,0 +1,22 @@
+{
+  "dataset": "dataset_spatial_v3",
+  "features": "features/spatial_v3.npz",
+  "slot_geometry": "features/spatial_v3_geom.npz",
+  "checkpoints": "checkpoints/v3_heads",
+  "bench": "bench/bench_pipeline.json",
+  "split": "test",
+  "n_pairs": 60,
+  "sample_seed": 20261020,
+  "version": "v1.5",
+  "models": [
+    {
+      "id": "starlife-v1-wsv",
+      "kind": "local_heads",
+      "mode": "LOCAL-HEADS",
+      "family": "StarLife",
+      "provider": "StarLife AI",
+      "source": "checkpoints/v3_heads",
+      "note": "v3 heads (5 frozen heads on Qwen3.8-27B slot features + slot geometry)"
+    }
+  ]
+}
