@@ -44,16 +44,15 @@ docs/                  method, data card, reproduction guide, test-suite design
 
 You need: Python ≥ 3.11, and an OpenAI-compatible endpoint (any VLM).
 
-1. **Get the dataset and features** (synthetic, ~1.6 GB total) from the
+1. **Get the dataset** (synthetic, ~1.2 GB) from the
    [v1.5 release](https://github.com/TYWIM/starlife_eval/releases/tag/v1.5): download
-   `dataset_spatial_v3.tar` **and** `spatial_v3_features.tar` (the features file holds the frozen
-   slot features + 13-dim slot geometry that the scorer needs for ground truth; heads are optional)
-   and unpack both into one data root:
+   `dataset_spatial_v3.tar` and unpack it so that you have:
    ```
    <data_root>/dataset_spatial_v3/{manifest.jsonl, meta.json, frames/, stats.csv}
-   <data_root>/features/spatial_v3.npz + spatial_v3_geom.npz + spatial_v3.meta.json
    ```
-   `configs/template_multimodal_model.json` is the config to edit.
+   `configs/template_multimodal_model.json` is the config to edit. Frozen slot features /
+   trained heads are only needed to reproduce the organizers' reference baseline and are not part
+   of the benchmark release.
 2. **Install**
    ```bash
    pip install -e .
@@ -94,22 +93,17 @@ Notes:
   `src/starlife_eval/models/openai_compat.py`.
 - Raw calls are cached as JSONL, so interrupted runs resume and stay auditable.
 
-## Quick start — reproduce the local-heads baseline
+## Organizer reference baseline (not ranked)
 
-1. Download `dataset_spatial_v3.tar.gz` **and** `spatial_v3_features.tar.gz` + `v3_heads.tar.gz`
-   from the release, and place them as
-   ```
-   <data_root>/features/spatial_v3.npz
-   <data_root>/features/spatial_v3_geom.npz
-   <data_root>/features/spatial_v3.meta.json
-   <data_root>/checkpoints/v3_heads/{change,type,relation,rel_pos,attrs}.pt
-   ```
-2. Run
-   ```bash
-   python -m starlife_eval run --config configs/v15.json --data-root <data_root> \
-     --only starlife-v1-wsv --out runs/local-heads
-   ```
-   (GPU is required for the heads; the trainer used a 27B backbone embedding, not included.)
+The organizers' own reference model is a set of five trained heads over frozen Qwen3.8-27B slot
+features. It is kept **out of the benchmark ranking and out of the benchmark release**: this repo is
+for scoring arbitrary multimodal models, not for publishing the organizers' model. See
+[`baselines/`](baselines/) for the config and the reasoning; the weights will be published
+separately if there is demand.
+
+The published leaderboard reports this row as `organizer baseline` alongside, not above, general
+models. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the plan to replace the current protocol with a
+task-matrix benchmark aligned with SpatialMQA / Spatial-DISE / Spatial457 / MindEdit-Bench.
 
 ## What is scored
 
@@ -135,6 +129,14 @@ sampling protocol.
 - Every `report.json` embeds config, dataset/feature/checkpoint sha256 (16 hex chars), timestamps and
   per-metric N/A reasons; nothing is filled in manually.
 - API keys live only in environment variables; the runner never writes them to disk.
+
+## Roadmap
+
+The current 60-pair change/relation board is a **v1.5 pilot**, not an authoritative benchmark.
+`docs/ROADMAP.md` describes the plan for a task-matrix benchmark (multi-hop spatial QA, 6D pose,
+counterfactual reasoning, world-state consistency, real-world human-verified subset) with
+statistical significance and external-benchmark cross-validation. The organizers' baseline is
+reported separately and never presented as a top-1 claim.
 
 ## Status of the public leaderboard data
 
