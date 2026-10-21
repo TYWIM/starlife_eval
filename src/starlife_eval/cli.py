@@ -124,8 +124,9 @@ def cmd_validate(args: argparse.Namespace) -> int:
     cfg = _load_cfg(args)
     cfg.require_data()
     manifest = load_manifest(cfg.dataset_dir)
-    features = load_features(cfg.features_path)
-    slots = features["slot_before"].shape[0]
+    needs_features = any(m.kind == "local_heads" for m in cfg.models)
+    features = load_features(cfg.features_path) if needs_features else None
+    slots = int(features["slot_before"].shape[0]) if features is not None else sum(len(pair.slots) for pair in manifest.pairs)
     offsets = manifest.slot_offsets
     ok = offsets[-1] == slots
     print(json.dumps({
@@ -134,8 +135,8 @@ def cmd_validate(args: argparse.Namespace) -> int:
         "splits": {s: len(manifest.split_indices(s)) for s in ("train", "val", "test")},
         "slots": slots,
         "slot_offsets_total": offsets[-1],
-        "feature_dim": int(features["slot_before"].shape[1]),
-        "relations": int(len(features["rel_from"])),
+        "feature_dim": int(features["slot_before"].shape[1]) if features is not None else None,
+        "relations": int(len(features["rel_from"])) if features is not None else sum(len(pair.relations) for pair in manifest.pairs),
         "checkpoints": sorted(p.name for p in cfg.checkpoint_dir.glob("*.pt")) if cfg.checkpoint_dir.exists() else [],
         "bench": cfg.bench_path.exists(),
         "cloud_cache": cfg.cloud_cache_path.exists(),
