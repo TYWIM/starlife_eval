@@ -1,0 +1,28 @@
+{
+  "dataset": "dataset_spatial_v3",
+  "features": "features/spatial_v3.npz",
+  "slot_geometry": "features/spatial_v3_geom.npz",
+  "checkpoints": "checkpoints/v3_heads",
+  "bench": "bench/bench_pipeline.json",
+  "split": "test",
+  "n_pairs": 60,
+  "sample_seed": 20261020,
+  "version": "v1.5",
+  "models": [
+    {
+      "id": "my-vlm",
+      "kind": "chat_vlm",
+      "mode": "ZERO-SHOT",
+      "family": "MyModel",
+      "provider": "MyLab",
+      "base_url": "https://your-endpoint.example/v1",
+      "model": "your-model-name",
+      "api_key_env": "MY_VLM_API_KEY",
+      "max_tokens": 4000,
+      "tolerate_call_errors": true,
+      "retries": 3,
+      "retry_sleep_s": 5,
+      "timeout_s": 180
+    }
+  ]
+}

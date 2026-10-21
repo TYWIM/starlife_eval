@@ -1,0 +1,30 @@
+{
+  "n_pairs": 60,
+  "local": {
+    "change_slots": 347,
+    "change_top1": 0.928,
+    "change_macro_f1": 0.6628,
+    "relation_pairs": 176,
+    "relation_type_acc": 0.9091,
+    "rel_pos_acc": 0.7125,
+    "attrs_acc": 0.9719
+  },
+  "cloud_deepseek_flash": {
+    "change_slots": 347,
+    "change_top1": 0.9251,
+    "change_macro_f1": 0.7781,
+    "relation_pairs": 176,
+    "relation_type_acc": 0.2784,
+    "rel_pos_acc": 0.4898,
+    "attrs_acc": 0.9286
+  },
+  "cloud_latency_s": {
+    "mean": 6.407,
+    "median": 6.01,
+    "max": 11.376
+  },
+  "cloud_tokens": {
+    "prompt": 82356,
+    "completion": 81524
+  }
+}
