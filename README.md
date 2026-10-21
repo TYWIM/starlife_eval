@@ -106,6 +106,27 @@ Model weights/features are not part of the benchmark release; what is published 
 See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the plan to grow the protocol into a task-matrix
 benchmark aligned with SpatialMQA / Spatial-DISE / Spatial457 / MindEdit-Bench.
 
+## v2 task-matrix benchmark (integration in progress)
+
+The pilot board below scores structured change/relation outputs on a synthetic dataset. The **v2**
+protocol generalises the benchmark to any multimodal or world model: authoritative public task sets
+(SpatialMQA, Spatial457, MindEdit-Bench, Spatial-DISE where licenses allow) plus an own diagnostic
+supplement, a unified task/prediction JSONL schema, three prompt variants, deterministic scoring,
+bootstrap CIs and paired significance tests.
+
+```bash
+python tools/fetch_benchmarks.py --list
+python -m starlife_eval.v2 run   --tasks data/tasks/spatialmqa.jsonl \
+  --model configs/template_multimodal_model.json --out runs/v2/my-model
+python -m starlife_eval.v2 score --tasks data/tasks/spatialmqa.jsonl \
+  --pred runs/v2/my-model/predictions.jsonl --out runs/v2/my-model --model-name my-model
+python -m starlife_eval.v2 compare --tasks data/tasks/spatialmqa.jsonl \
+  --pred-a runs/a/predictions.jsonl --pred-b runs/b/predictions.jsonl
+```
+
+The organizers' model participates under the same protocol; head-level metrics are auxiliary only.
+Full contract: [`docs/BENCHMARK_V2.md`](docs/BENCHMARK_V2.md).
+
 ## What is scored
 
 | dimension | metric | definition |

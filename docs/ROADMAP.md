@@ -77,7 +77,7 @@ and counterfactual consistency. VLM and world-model boards are separate, not mix
 | phase | timeline | deliverable |
 |---|---|---|
 | P0 | 1 week | benchmark repo ships task data only (no organizer weights/features); unified answer schema for every participant; neutral wording in docs (done in this repo) |
-| P1 | 3–4 weeks | T1/T2/T3 external-subset evaluation scripts (~1,000 items); T4/T5 diagnostic sets; protocol v2.0 |
+| P1 | 3–4 weeks | **harness landed**: `src/starlife_eval/v2` (unified task/prediction schema, 3 prompt templates, deterministic scorer, bootstrap CI + McNemar), `datasets/registry.json`, `tools/fetch_benchmarks.py`; remaining: download the official releases, finalize converters, freeze ~1,000 items per task family and run all models |
 | P2 | 4–6 weeks | real-world human-verified subset + human ceiling; external cross-benchmark validation; public v2 board |
 | P3 | ongoing | CI smoke set, canary strings, seasonal data versions, endpoint snapshots |
 
