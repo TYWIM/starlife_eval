@@ -8,5 +8,5 @@ same task data, same prompt, same answer schema, same scorer. The heads are an i
 implementation detail; head-level metrics are auxiliary diagnostics and never the main score,
 so a model without heads is scored on the same footing.
 
-Weights are not distributed with the benchmark release. The row's model outputs are published
-as a normal output cache, so it can be re-scored and inspected like any other entry.
+Weights, frozen features and training artifacts are private and are never uploaded. Only the row's
+evaluated outputs are published, so it can be re-scored and inspected like any other entry.

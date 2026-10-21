@@ -45,19 +45,10 @@ Outputs:
 
 ## B. Organizer model row (ordinary entry)
 
-The organizers' model is scored through the same task schema as everyone else. Its weights and
-frozen features are not part of the benchmark release; the row can be inspected and re-scored from
-its published output cache. The recipe below is only for internal reproduction of that row.
-
-```bash
-tar -xzf spatial_v3_features.tar.gz   # features/spatial_v3.npz + spatial_v3_geom.npz + .meta.json
-tar -xzf v3_heads.tar.gz              # checkpoints/v3_heads/*.pt
-python -m starlife_eval run --config configs/local_heads_v15.json \
-  --data-root "$DATA_ROOT" --only starlife-v1-wsv --out runs/local-heads
-```
-
-The heads are tiny MLPs; the expensive part (27B backbone slot-feature extraction) is what produced
-`spatial_v3.npz` and is not shipped as weights.
+The organizers' model is scored through the same task schema as everyone else. Its weights, frozen
+features and training artifacts are **private and are not published anywhere**; only its evaluated
+outputs (predictions) appear on the board, like for any other entry. Nothing in the benchmark
+requires the organizers' artifacts.
 
 ## C. Retrain the heads (method reproduction)
 

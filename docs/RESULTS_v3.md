@@ -47,14 +47,9 @@ Deterministic 60-pair sample from the test split (`seed=20261020`), 7 equal-weig
 | state_consistency | 95.9 | 94.5 – 97.2 |
 | **composite (equal weight)** | **95.2** | **93.7 – 96.5** |
 
-Reproduce with the released `spatial_v3_features.tar.gz` + `v3_heads.tar.gz`:
-
-```bash
-python -m starlife_eval run --config configs/local_heads_v15.json --data-root "$DATA_ROOT" \
-  --only starlife-v1-wsv --out runs/local-heads
-python tools/confidence_intervals.py --config configs/local_heads_v15.json --data-root "$DATA_ROOT" \
-  --out runs/local-heads/confidence_intervals.json --report runs/local-heads/report.json
-```
+The organizers' model artifacts (checkpoints, frozen features) are private and are not
+distributed; this row is reported for transparency and is scored through the same task
+schema as every other entry.
 
 ## Notes
 

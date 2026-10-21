@@ -1,8 +1,5 @@
 {
   "dataset": "dataset_spatial_v3",
-  "features": "features/spatial_v3.npz",
-  "slot_geometry": "features/spatial_v3_geom.npz",
-  "checkpoints": "checkpoints/v3_heads",
   "bench": "bench/bench_pipeline.json",
   "split": "test",
   "n_pairs": 60,
