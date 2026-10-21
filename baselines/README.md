@@ -1,11 +1,12 @@
-# Organizer reference baseline (not part of the benchmark)
+# Organizer model (ordinary benchmark entry)
 
-The five heads in `local_heads_v15.json` belong to the organizers' reference model
+The five heads in `local_heads_v15.json` belong to the organizers' model
 (frozen Qwen3.8-27B slot features + five MLP heads trained on the synthetic training split).
 
-They are **not** required to run the benchmark and are **not** part of the benchmark data:
-any OpenAI-compatible multimodal model is scored through the same prompt/schema/verifier path.
+This model participates in the ranking under exactly the same protocol as every other model:
+same task data, same prompt, same answer schema, same scorer. The heads are an internal
+implementation detail; head-level metrics are auxiliary diagnostics and never the main score,
+so a model without heads is scored on the same footing.
 
-The baseline is reported separately so the board does not present the organizers' own model as a
-candidate in the general ranking. If you want to reproduce it, the (optional) baseline artifacts
-are published outside the benchmark release; the benchmark itself only needs the dataset archive.
+Weights are not distributed with the benchmark release. The row's model outputs are published
+as a normal output cache, so it can be re-scored and inspected like any other entry.
