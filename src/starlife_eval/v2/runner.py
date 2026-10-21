@@ -69,7 +69,7 @@ def _call(model: Mapping[str, Any], task: Task, template: str, timeout: float = 
         except urllib.error.HTTPError as exc:
             body = exc.read().decode(errors="replace")[:200]
             last_error = RuntimeError(f"HTTP {exc.code}: {body}")
-            retryable = exc.code in (429, 500, 502, 503, 504)
+            retryable = exc.code in (404, 408, 409, 425, 429, 500, 502, 503, 504)
             if retryable and attempt < retries - 1:
                 retry_after = exc.headers.get("Retry-After") if exc.headers else None
                 wait = float(retry_after) if retry_after and str(retry_after).isdigit() else min(90.0, 5.0 * (2 ** attempt))
