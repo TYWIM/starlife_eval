@@ -13,13 +13,14 @@ dist/
 
 # local data and caches (download the release instead)
 data/
-datasets/
+data_v2/
 features/
 checkpoints/
 runs/
 *.npz
 *.pt
 *.jsonl
+*.tar
 
 # secrets
 .env
