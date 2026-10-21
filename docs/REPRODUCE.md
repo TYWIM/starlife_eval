@@ -43,12 +43,11 @@ Outputs:
 - `leaderboard.generated.json` — row in the site's data contract;
 - `confidence_intervals.json` — 95% pair-level bootstrap (1,000 draws, seed 20261021).
 
-## B. Organizer reference baseline (optional, not ranked)
+## B. Organizer model row (ordinary entry)
 
-The organizers' baseline uses `spatial_v3_features.tar` + the trained heads; those artifacts are
-**not** part of the benchmark release (a benchmark repo must not ship the organizers' model as if it
-were required to participate). The scoring path below is therefore an internal reproduction recipe
-for the baseline row only.
+The organizers' model is scored through the same task schema as everyone else. Its weights and
+frozen features are not part of the benchmark release; the row can be inspected and re-scored from
+its published output cache. The recipe below is only for internal reproduction of that row.
 
 ```bash
 tar -xzf spatial_v3_features.tar.gz   # features/spatial_v3.npz + spatial_v3_geom.npz + .meta.json

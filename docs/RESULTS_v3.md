@@ -1,8 +1,9 @@
-# Results — organizers' reference baseline (v3 heads)
+# Results — organizers' model (v3 heads)
 
-> This row is the organizers' own reference baseline. It is reported for transparency and is
-> **not ranked** against general multimodal models; the benchmark's purpose is to score arbitrary
-> models through the published prompt/schema path.
+> This row belongs to the organizers' own model and is an ordinary entry in the ranking: same
+> data, same prompt, same answer schema, same scorer. Head-level metrics below are auxiliary
+> diagnostics; they are not the main score and are N/A for models that only answer through the
+> unified task schema. No top-1/SOTA wording is used.
 
 Dataset: `dataset_spatial_v3` (synthetic, 5,000 pairs / 10,000 frames, seed 20261020).
 Backbone: Qwen3.8-27B vision tower, **frozen**; heads: LayerNorm → Linear(d,512) → GELU →

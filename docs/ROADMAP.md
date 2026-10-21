@@ -64,16 +64,19 @@ and counterfactual consistency. VLM and world-model boards are separate, not mix
 
 ## Board governance
 
-- General models only in the ranking; the organizers' baseline is shown separately as
-  `organizer baseline`, never ranked and never called top-1.
-- Publish human ceilings, per-task breakdowns, CIs and significance markers; no single "SOTA" claim.
+- The leaderboard contains **all** entries, including the organizers' model, under the same data,
+  prompt, answer schema and scorer. No special-cased rows; head-level metrics are auxiliary.
+- Published rows carry human ceilings, per-task breakdowns, CIs and significance markers; the docs
+  use numbers and intervals only — no SOTA/top-1 wording.
+- Every entry (including ours) is reproducible from its published output cache; model weights are
+  not required and are not part of the benchmark release.
 - Versioned releases with changelogs and data hashes; external-benchmark columns reported alongside.
 
 ## Milestones
 
 | phase | timeline | deliverable |
 |---|---|---|
-| P0 | 1 week | benchmark repo no longer ships the organizers' weights; board separates `organizer baseline`; synthetic-data disclosure everywhere (done in this repo) |
+| P0 | 1 week | benchmark repo ships task data only (no organizer weights/features); unified answer schema for every participant; neutral wording in docs (done in this repo) |
 | P1 | 3–4 weeks | T1/T2/T3 external-subset evaluation scripts (~1,000 items); T4/T5 diagnostic sets; protocol v2.0 |
 | P2 | 4–6 weeks | real-world human-verified subset + human ceiling; external cross-benchmark validation; public v2 board |
 | P3 | ongoing | CI smoke set, canary strings, seasonal data versions, endpoint snapshots |

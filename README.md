@@ -93,17 +93,18 @@ Notes:
   `src/starlife_eval/models/openai_compat.py`.
 - Raw calls are cached as JSONL, so interrupted runs resume and stay auditable.
 
-## Organizer reference baseline (not ranked)
+## Organizer model (participates under the same protocol)
 
-The organizers' own reference model is a set of five trained heads over frozen Qwen3.8-27B slot
-features. It is kept **out of the benchmark ranking and out of the benchmark release**: this repo is
-for scoring arbitrary multimodal models, not for publishing the organizers' model. See
-[`baselines/`](baselines/) for the config and the reasoning; the weights will be published
-separately if there is demand.
+The organizers' model (frozen Qwen3.8-27B slot features + five trained heads, see
+[`baselines/`](baselines/)) takes part in the ranking like any other entry: same data, same prompt,
+same answer schema, same scorer. Its head-level metrics are auxiliary diagnostics only — the main
+score comes from the unified task outputs, so models without heads are fully comparable.
 
-The published leaderboard reports this row as `organizer baseline` alongside, not above, general
-models. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the plan to replace the current protocol with a
-task-matrix benchmark aligned with SpatialMQA / Spatial-DISE / Spatial457 / MindEdit-Bench.
+Model weights/features are not part of the benchmark release; what is published for every entry
+(including ours) is the model output cache, so every row can be re-scored and inspected.
+
+See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the plan to grow the protocol into a task-matrix
+benchmark aligned with SpatialMQA / Spatial-DISE / Spatial457 / MindEdit-Bench.
 
 ## What is scored
 
@@ -135,8 +136,8 @@ sampling protocol.
 The current 60-pair change/relation board is a **v1.5 pilot**, not an authoritative benchmark.
 `docs/ROADMAP.md` describes the plan for a task-matrix benchmark (multi-hop spatial QA, 6D pose,
 counterfactual reasoning, world-state consistency, real-world human-verified subset) with
-statistical significance and external-benchmark cross-validation. The organizers' baseline is
-reported separately and never presented as a top-1 claim.
+statistical significance and external-benchmark cross-validation. The organizers' model is an ordinary entry; the docs contain numbers, confidence intervals and
+significance markers only — no SOTA/top-1 wording.
 
 ## Status of the public leaderboard data
 
