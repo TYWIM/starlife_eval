@@ -47,11 +47,17 @@ def run_evaluation(cfg: EvalConfig, *, out_dir: Path | None = None, live: bool =
     _log(f"data_root={cfg.data_root}")
     manifest = load_manifest(cfg.dataset_dir)
     _log(f"manifest: {len(manifest.pairs)} pairs, split={cfg.split} -> {len(manifest.split_indices(cfg.split))} pairs")
-    features = load_features(cfg.features_path)
-    meta = features.meta
-    _log(f"features: {cfg.features_path.name}, slots={features['slot_before'].shape[0]}, dim={features['slot_before'].shape[1]}")
-
-    rel = build_relation_data(features)
+    needs_features = any(m.kind == "local_heads" for m in cfg.models)
+    features = None
+    meta: dict[str, Any] = {}
+    rel: dict[str, Any] = {}
+    if needs_features:
+        features = load_features(cfg.features_path)
+        meta = features.meta
+        _log(f"features: {cfg.features_path.name}, slots={features['slot_before'].shape[0]}, dim={features['slot_before'].shape[1]}")
+        rel = build_relation_data(features)
+    else:
+        _log("features: not required (no local_heads model in this config)")
     sample = sample_pairs(manifest, cfg.split, cfg.n_pairs, cfg.sample_seed)
     _log(f"sample_pairs: n={len(sample)} seed={cfg.sample_seed}")
 
@@ -124,11 +130,17 @@ def run_evaluation(cfg: EvalConfig, *, out_dir: Path | None = None, live: bool =
         _log(f"  - {run.model_id}: done ({run.kind}), event_f1={ev.event_metrics.get('macro_f1')}")
 
     report = build_report(cfg, evaluations)
+    if features is not None:
+        slots = int(features["slot_before"].shape[0])
+        relations = int(len(features["rel_from"]))
+    else:
+        slots = sum(len(pair.slots) for pair in manifest.pairs)
+        relations = sum(len(pair.relations) for pair in manifest.pairs)
     counts = {
         "pairs": len(manifest.pairs),
-        "slots": int(features["slot_before"].shape[0]),
-        "relations": int(len(features["rel_from"])),
-        "heads": 5,
+        "slots": slots,
+        "relations": relations,
+        "heads": 5 if needs_features else 0,
     }
     report["meta"]["n_test_pairs"] = len(manifest.split_indices(cfg.split))
     report["meta"]["counts"] = counts

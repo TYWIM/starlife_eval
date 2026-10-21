@@ -45,7 +45,7 @@ evaluation sample is drawn from the test split with seed `20261020` — see `doc
 |---|---|---|
 | `dataset_spatial_v3.tar.gz` | 1.2 GB | full dataset (manifest + frames + GT) — required for zero-shot evaluation |
 | `spatial_v3_features.tar.gz` | 446 MB | frozen Qwen3.8-27B slot features + 13-dim slot geometry, for local-heads reproduction / training |
-| `v3_heads.tar.gz` | 144 MB | the five trained heads of the public baseline |
+| `v3_heads.tar` (separate, optional) | 150 MB | organizers' reference baseline heads — not required for evaluation, not part of the benchmark |
 
 Cloud providers' raw outputs used for the public board are **not** redistributed; every row can be
 reproduced by re-running the model through the published `chat_vlm` adapter.

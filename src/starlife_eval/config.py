@@ -124,7 +124,10 @@ class EvalConfig:
         return d
 
     def require_data(self) -> None:
-        missing = [str(p) for p in (self.dataset_dir, self.features_path) if not p.exists()]
+        needed = [self.dataset_dir]
+        if any(m.kind == "local_heads" for m in self.models):
+            needed.append(self.features_path)
+        missing = [str(p) for p in needed if not p.exists()]
         if missing:
             raise FileNotFoundError(
                 "缺少真实产物（--data-root 配置不对？）:\n  " + "\n  ".join(missing)

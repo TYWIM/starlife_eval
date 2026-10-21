@@ -1,4 +1,8 @@
-# Results — local heads v3 (v1.5 benchmark)
+# Results — organizers' reference baseline (v3 heads)
+
+> This row is the organizers' own reference baseline. It is reported for transparency and is
+> **not ranked** against general multimodal models; the benchmark's purpose is to score arbitrary
+> models through the published prompt/schema path.
 
 Dataset: `dataset_spatial_v3` (synthetic, 5,000 pairs / 10,000 frames, seed 20261020).
 Backbone: Qwen3.8-27B vision tower, **frozen**; heads: LayerNorm → Linear(d,512) → GELU →
