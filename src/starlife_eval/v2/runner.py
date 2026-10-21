@@ -88,7 +88,11 @@ def _call(model: Mapping[str, Any], task: Task, template: str, timeout: float = 
     text = ((payload.get("choices") or [{}])[0].get("message") or {}).get("content", "") or ""
     if isinstance(text, list):
         text = "".join(part.get("text", "") for part in text if isinstance(part, dict))
-    return str(text), latency
+    text = str(text)
+    if not text.strip():
+        # reasoning models can burn the whole max_tokens budget and emit nothing: retry, don't score
+        raise RuntimeError("empty response (max_tokens/reasoning truncation)")
+    return text, latency
 
 
 def _parse(task: Task, raw: str, template: str) -> Prediction:
