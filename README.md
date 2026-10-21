@@ -44,13 +44,16 @@ docs/                  method, data card, reproduction guide, test-suite design
 
 You need: Python ≥ 3.11, and an OpenAI-compatible endpoint (any VLM).
 
-1. **Get the dataset** (synthetic, ~1.2 GB) from the
+1. **Get the dataset and features** (synthetic, ~1.6 GB total) from the
    [v1.5 release](https://github.com/TYWIM/starlife_eval/releases/tag/v1.5): download
-   `dataset_spatial_v3.tar.gz` and unpack it so that you have a data root like
+   `dataset_spatial_v3.tar` **and** `spatial_v3_features.tar` (the features file holds the frozen
+   slot features + 13-dim slot geometry that the scorer needs for ground truth; heads are optional)
+   and unpack both into one data root:
    ```
    <data_root>/dataset_spatial_v3/{manifest.jsonl, meta.json, frames/, stats.csv}
+   <data_root>/features/spatial_v3.npz + spatial_v3_geom.npz + spatial_v3.meta.json
    ```
-   `configs/template_multimodal_model.json` in that release is the config to edit.
+   `configs/template_multimodal_model.json` is the config to edit.
 2. **Install**
    ```bash
    pip install -e .
