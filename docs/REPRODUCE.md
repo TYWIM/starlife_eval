@@ -43,9 +43,12 @@ Outputs:
 - `leaderboard.generated.json` — row in the site's data contract;
 - `confidence_intervals.json` — 95% pair-level bootstrap (1,000 draws, seed 20261021).
 
-## B. Local-heads baseline
+## B. Organizer reference baseline (optional, not ranked)
 
-Additional assets: `spatial_v3_features.tar.gz` and `v3_heads.tar.gz`.
+The organizers' baseline uses `spatial_v3_features.tar` + the trained heads; those artifacts are
+**not** part of the benchmark release (a benchmark repo must not ship the organizers' model as if it
+were required to participate). The scoring path below is therefore an internal reproduction recipe
+for the baseline row only.
 
 ```bash
 tar -xzf spatial_v3_features.tar.gz   # features/spatial_v3.npz + spatial_v3_geom.npz + .meta.json
