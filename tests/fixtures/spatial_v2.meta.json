@@ -1,0 +1,63 @@
+{
+  "mode": "spatial",
+  "pairs": 1000,
+  "slots": 5830,
+  "dim": 5120,
+  "type_keys": [
+    "book",
+    "bottle",
+    "bottle_cap",
+    "chair",
+    "desk_lamp",
+    "eraser",
+    "keyboard",
+    "lamp_head",
+    "monitor",
+    "monitor_stand",
+    "mouse",
+    "mug",
+    "notebook",
+    "pen",
+    "pen_cap",
+    "phone",
+    "phone_stand",
+    "plant",
+    "table",
+    "tape",
+    "tray",
+    "wall_shelf"
+  ],
+  "rel_types": [
+    "above",
+    "belongs_to",
+    "below",
+    "contains",
+    "facing",
+    "held_by",
+    "in",
+    "near",
+    "next_to",
+    "on",
+    "part_of"
+  ],
+  "rel_pos_keys": [
+    "back",
+    "back_left",
+    "back_right",
+    "front",
+    "front_left",
+    "front_right",
+    "inside",
+    "left",
+    "right",
+    "top"
+  ],
+  "change_keys": [
+    "none",
+    "appeared",
+    "displaced",
+    "disappeared"
+  ],
+  "types_count": 22,
+  "relations": 2575
+}
