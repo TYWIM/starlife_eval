@@ -67,7 +67,7 @@ class Task:
 def load_tasks(path: Path | str) -> list[Task]:
     tasks: list[Task] = []
     seen: set[str] = set()
-    for line in Path(path).read_text(encoding="utf-8").splitlines():
+    for line in Path(path).read_text(encoding="utf-8-sig").splitlines():
         line = line.strip()
         if not line:
             continue
@@ -127,7 +127,7 @@ class Prediction:
 
 def load_predictions(path: Path | str) -> dict[str, Prediction]:
     out: dict[str, Prediction] = {}
-    for line in Path(path).read_text(encoding="utf-8").splitlines():
+    for line in Path(path).read_text(encoding="utf-8-sig").splitlines():
         line = line.strip()
         if not line:
             continue

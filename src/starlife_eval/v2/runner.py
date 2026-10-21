@@ -82,7 +82,7 @@ def cmd_run(args: Any) -> int:
     tasks = load_tasks(args.tasks)
     if args.limit:
         tasks = tasks[: args.limit]
-    spec = json.loads(Path(args.model).read_text(encoding="utf-8"))
+    spec = json.loads(Path(args.model).read_text(encoding="utf-8-sig"))
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     pred_path = out / "predictions.jsonl"
@@ -90,7 +90,7 @@ def cmd_run(args: Any) -> int:
     done = load_predictions(pred_path) if pred_path.exists() else {}
     cache = {}
     if cache_path.exists():
-        for line in cache_path.read_text(encoding="utf-8").splitlines():
+        for line in cache_path.read_text(encoding="utf-8-sig").splitlines():
             if line.strip():
                 rec = json.loads(line)
                 cache[rec["task_id"]] = rec
