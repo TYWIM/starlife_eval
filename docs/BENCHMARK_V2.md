@@ -50,9 +50,9 @@ registered datasets and their licenses.
 
 | dataset | capability | official source | status |
 |---|---|---|---|
-| SpatialMQA (ACL 2025) | T1 | https://hf-mirror.com/datasets/liuziyan/SpatialMQA (CC BY 4.0) | downloaded, 536 dev tasks converted |
-| Spatial457 (CVPR 2025) | T2 | https://hf-mirror.com/datasets/RyanWW/Spatial457 (Apache 2.0) | download in progress |
-| MindEdit-Bench | T3 | https://hf-mirror.com/datasets/ZODAOfficial/MindEdit-Bench (CC BY 4.0) | downloaded, 1,003 tasks converted |
+| SpatialMQA (ACL 2025) | T1 | https://hf-mirror.com/datasets/liuziyan/SpatialMQA (CC BY 4.0) | **ready**: `spatialmqa_full.tar` (996 images + dev.jsonl) + 536 unified tasks |
+| Spatial457 (CVPR 2025) | T2 | https://hf-mirror.com/datasets/RyanWW/Spatial457 (Apache 2.0) | **mirrored** (`spatial457.tar`: images + 3D assets + generator); unified tasks pending the official generation pipeline |
+| MindEdit-Bench | T3 | https://hf-mirror.com/datasets/ZODAOfficial/MindEdit-Bench (CC BY 4.0) | **ready**: `mindedit_bench.tar`, 1,003 unified tasks |
 | Spatial-DISE (ICLR 2026) | T1–T6 | https://hf-mirror.com/datasets/TACPS-liv/Spatial-DISE (CC BY-NC-SA 4.0) | download-only, not redistributed |
 | spatial3d (own) | T4/T5 | `dataset_spatial_v3.tar` (CC BY 4.0) | diagnostic supplement only |
 
