@@ -12,9 +12,11 @@ from __future__ import annotations
 import base64
 import json
 import os
+import threading
 import time
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -96,25 +98,38 @@ def cmd_run(args: Any) -> int:
                 cache[rec["task_id"]] = rec
 
     preds: list[Prediction] = list(done.values())
-    with cache_path.open("a", encoding="utf-8") as cf:
-        for i, task in enumerate(tasks):
-            if task.task_id in done:
-                continue
-            template = PROMPT_TEMPLATES[i % len(PROMPT_TEMPLATES)]
-            try:
-                raw, latency = _call(spec, task, template, timeout=float(spec.get("timeout_s", 180)))
-                pred = _parse(task, raw, template)
-                pred = Prediction(**{**pred.to_dict(), "latency_s": latency})
+    lock = threading.Lock()
+    todo = [(i, t) for i, t in enumerate(tasks) if t.task_id not in done]
+    total = len(todo)
+    state = {"done": 0}
+    cf = cache_path.open("a", encoding="utf-8")
+
+    def work(item: tuple[int, Task]) -> None:
+        i, task = item
+        template = PROMPT_TEMPLATES[i % len(PROMPT_TEMPLATES)]
+        try:
+            raw, latency = _call(spec, task, template, timeout=float(spec.get("timeout_s", 180)))
+            pred = _parse(task, raw, template)
+            pred = Prediction(**{**pred.to_dict(), "latency_s": latency})
+            with lock:
                 cf.write(json.dumps({"task_id": task.task_id, "template": template, "raw": raw,
                                      "latency_s": latency}, ensure_ascii=False) + "\n")
                 cf.flush()
-            except Exception as exc:  # noqa: BLE001 —— 单题失败不拖垮整轮
-                pred = Prediction(task_id=task.task_id, error=f"{type(exc).__name__}: {exc}",
-                                  template=template)
+        except Exception as exc:  # noqa: BLE001 —— 单题失败不拖垮整轮
+            pred = Prediction(task_id=task.task_id, error=f"{type(exc).__name__}: {exc}",
+                              template=template)
+        with lock:
             preds.append(pred)
             write_predictions(preds, pred_path)
-            if (i + 1) % 25 == 0:
-                print(f"  {i + 1}/{len(tasks)} tasks", flush=True)
+            state["done"] += 1
+            if state["done"] % 25 == 0:
+                print(f"  {state['done']}/{total} tasks", flush=True)
+
+    workers = max(1, int(getattr(args, "workers", 8) or 8))
+    if todo:
+        with ThreadPoolExecutor(max_workers=workers) as ex:
+            list(ex.map(work, todo))
+    cf.close()
 
     preds_map = {p.task_id: p for p in preds}
     report = score_run(args.model_name or spec.get("name", spec.get("model", "model")), tasks, preds_map,

@@ -17,6 +17,7 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--model", required=True, help="model spec JSON (base_url, model, api_key_env)")
     run.add_argument("--out", required=True, help="output directory")
     run.add_argument("--limit", type=int, default=0, help="only the first N tasks (smoke test)")
+    run.add_argument("--workers", type=int, default=8, help="concurrent requests per model (default 8)")
     run.add_argument("--model-name", default="", help="display name for the report")
     run.set_defaults(fn=cmd_run)
 
