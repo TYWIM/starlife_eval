@@ -50,10 +50,10 @@ registered datasets and their licenses.
 
 | dataset | capability | official source | status |
 |---|---|---|---|
-| SpatialMQA (ACL 2025) | T1 | https://huggingface.co/datasets/liuziyan/SpatialMQA | converter ready for JSONL release; needs inspection |
-| Spatial457 (CVPR 2025) | T2 | https://github.com/lingtengqiu/Spatial457 | converter ready for JSONL release; needs inspection |
-| MindEdit-Bench | T3 | https://huggingface.co/datasets/ZODAOfficial/MindEdit-Bench | MIT; converter ready for JSONL release |
-| Spatial-DISE (ICLR 2026) | T1–T6 | ICLR proceedings (license TBD) | pending release check |
+| SpatialMQA (ACL 2025) | T1 | https://hf-mirror.com/datasets/liuziyan/SpatialMQA (CC BY 4.0) | downloaded, 536 dev tasks converted |
+| Spatial457 (CVPR 2025) | T2 | https://hf-mirror.com/datasets/RyanWW/Spatial457 (Apache 2.0) | download in progress |
+| MindEdit-Bench | T3 | https://hf-mirror.com/datasets/ZODAOfficial/MindEdit-Bench (CC BY 4.0) | downloaded, 1,003 tasks converted |
+| Spatial-DISE (ICLR 2026) | T1–T6 | https://hf-mirror.com/datasets/TACPS-liv/Spatial-DISE (CC BY-NC-SA 4.0) | download-only, not redistributed |
 | spatial3d (own) | T4/T5 | `dataset_spatial_v3.tar` (CC BY 4.0) | diagnostic supplement only |
 
 Rules: official test splits only; no repackaging of third-party data into this repository (scripts +
