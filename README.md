@@ -61,7 +61,6 @@ You need: Python ≥ 3.11, and an OpenAI-compatible endpoint (any VLM).
    ```json
    {
      "dataset": "dataset_spatial_v3",
-     "features": "features/spatial_v3.npz",
      "split": "test",
      "n_pairs": 60,
      "sample_seed": 20261020,
