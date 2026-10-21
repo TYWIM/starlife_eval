@@ -59,11 +59,31 @@ def _call(model: Mapping[str, Any], task: Task, template: str, timeout: float = 
                  "Content-Type": "application/json", "User-Agent": model.get("user_agent", "starlife-eval-v2")},
     )
     t0 = time.time()
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            payload = json.loads(r.read().decode())
-    except urllib.error.HTTPError as exc:
-        raise RuntimeError(f"HTTP {exc.code}: {exc.read().decode(errors='replace')[:300]}") from exc
+    retries = int(model.get("retries", 4))
+    last_error: Exception | None = None
+    for attempt in range(retries):
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                payload = json.loads(r.read().decode())
+            break
+        except urllib.error.HTTPError as exc:
+            body = exc.read().decode(errors="replace")[:200]
+            last_error = RuntimeError(f"HTTP {exc.code}: {body}")
+            retryable = exc.code in (429, 500, 502, 503, 504)
+            if retryable and attempt < retries - 1:
+                retry_after = exc.headers.get("Retry-After") if exc.headers else None
+                wait = float(retry_after) if retry_after and str(retry_after).isdigit() else min(90.0, 5.0 * (2 ** attempt))
+                time.sleep(wait)
+                continue
+            raise last_error from exc
+        except Exception as exc:  # noqa: BLE001 —— 超时/连接问题可重试
+            last_error = exc
+            if attempt < retries - 1:
+                time.sleep(min(60.0, 3.0 * (2 ** attempt)))
+                continue
+            raise
+    else:
+        raise last_error if last_error else RuntimeError("request failed")
     latency = time.time() - t0
     text = ((payload.get("choices") or [{}])[0].get("message") or {}).get("content", "") or ""
     if isinstance(text, list):
