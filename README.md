@@ -161,6 +161,17 @@ significance markers only — no SOTA/top-1 wording.
 
 ## Status of the public leaderboard data
 
+### v2 task matrix (current campaign)
+
+[`docs/RESULTS_SPATIALMQA.md`](docs/RESULTS_SPATIALMQA.md) and [`reports/v2/`](reports/v2/): five
+general-purpose multimodal models on one cell of the v2 matrix — **T1 SpatialMQA**, 1,612 single-image
+multiple-choice tasks (test 1,076 + validation 536), deterministic scoring with 95% bootstrap CI and
+per-model coverage. MindEdit (T3) is withdrawn from this report (truncated replies had been scored as
+wrong answers and a prompt revision invalidated the remaining rows; see the doc) and will be published
+only after a clean, fully covered re-run. The organizers' model has not been scored on v2 yet.
+
+### v1.5 pilot (previous board)
+
 The published board currently contains four rows scored on this v1.5 sample
 (`starlife-v1-wsv` local heads, `deepseek-flash`, `gpt-6.1-sol`, `gemini-3.8-flash`); the other rows
 are the previous v1.4 sample until their v1.5 rerun completes. See
