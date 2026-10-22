@@ -168,7 +168,13 @@ general-purpose multimodal models on one cell of the v2 matrix — **T1 SpatialM
 multiple-choice tasks (test 1,076 + validation 536), deterministic scoring with 95% bootstrap CI and
 per-model coverage. MindEdit (T3) is withdrawn from this report (truncated replies had been scored as
 wrong answers and a prompt revision invalidated the remaining rows; see the doc) and will be published
-only after a clean, fully covered re-run. The organizers' model has not been scored on v2 yet.
+only after a clean, fully covered re-run. The organizers' model is not in this text-only
+comparison. It is scored on a separate **structured-input track**
+([`docs/RESULTS_STRUCTURED_TRACK.md`](docs/RESULTS_STRUCTURED_TRACK.md),
+[`reports/v2/structured_track.json`](reports/v2/structured_track.json)): the in-house model consumes
+before/after frames plus detector boxes and emits structured events, so its 60-pair numbers
+(direction-matched, ground-truth detections, event F1 and state consistency N/A) are reported on
+their own table and are not comparable with the text rows.
 
 ### v1.5 pilot (previous board)
 
