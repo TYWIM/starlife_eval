@@ -181,7 +181,8 @@ def convert_mindedit(raw: Path, out: Path) -> int:
                 answer_type="choice", question=str(row.get("question", "")),
                 images=tuple(images), choices=tuple(choices), answer=answer_idx,
                 split="test",
-                meta={k: str(row.get(k)) for k in ("task", "room", "triplet") if row.get(k) is not None},
+                meta={**{k: str(row.get(k)) for k in ("task", "room", "triplet") if row.get(k) is not None},
+                      **({"views": "view1,view2,view3"} if len(images) == 3 else {})},
             ))
             index += 1
     return write_tasks(tasks, out)

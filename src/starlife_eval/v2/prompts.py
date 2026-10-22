@@ -35,6 +35,10 @@ def build_prompt(task, template: str = "direct") -> str:
                      "then give a final answer.")
     elif template == "minimal":
         parts.append("Spatial reasoning question.")
+    views = task.meta.get("views")
+    if views:
+        labels = ", ".join(f"image {i + 1} = {v}" for i, v in enumerate(str(views).split(",")))
+        parts.append(f"Images are provided in this order: {labels}.")
     parts.append(task.question.strip())
     if task.answer_type == "choice":
         letters = [chr(ord("A") + i) for i in range(len(task.choices))]
@@ -49,28 +53,37 @@ def build_prompt(task, template: str = "direct") -> str:
     return "\n".join(parts)
 
 
-_ANSWER_LINE = re.compile(r"answer\s*[:：]\s*(.+)$", re.IGNORECASE | re.MULTILINE)
-_LETTER = re.compile(r"\b([A-Z])\b")
+_ANSWER_LINE = re.compile(r"answer\s*(?:is)?\s*[:：]?\s*\(?([A-Za-z])\)?", re.IGNORECASE)
+_LETTER = re.compile(r"(?<![A-Za-z])([A-Za-z])(?![A-Za-z])")
+
+
+def _normalise(text: str) -> str:
+    import unicodedata
+
+    t = unicodedata.normalize("NFKC", text)
+    t = t.replace("*", "").replace("`", "")
+    return t
 
 
 def parse_choice(raw: str, n_choices: int) -> int | None:
-    """Extract a 0-based choice index from a model reply, or None if unparsable."""
+    """Extract a 0-based choice index from a model reply, or None if unparsable.
+
+    Handles: "Answer: C", "answer is (c)", "**C**", "C.", "Option D", trailing explanations.
+    When several standalone letters appear, the one nearest the answer keyword wins; otherwise the
+    last one (models usually conclude with the answer).
+    """
     if not raw:
         return None
-    text = raw.strip()
+    text = _normalise(raw).strip()
     m = _ANSWER_LINE.search(text)
-    if m:
-        text = m.group(1).strip()
-    # strip leading punctuation / "option"
-    text = re.sub(r"^(option|choice)\s*", "", text, flags=re.IGNORECASE).strip(" .;:")
-    if len(text) == 1 and text.isalpha():
-        idx = ord(text.upper()) - ord("A")
-        return idx if 0 <= idx < n_choices else None
-    m = re.search(r"\b([A-Z])\b", text, re.IGNORECASE)
     if m:
         idx = ord(m.group(1).upper()) - ord("A")
         return idx if 0 <= idx < n_choices else None
-    return None
+    candidates = [ord(c.upper()) - ord("A") for c in _LETTER.findall(text)]
+    candidates = [i for i in candidates if 0 <= i < n_choices]
+    if not candidates:
+        return None
+    return candidates[-1]
 
 
 def parse_short(raw: str) -> str | None:

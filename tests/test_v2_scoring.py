@@ -79,3 +79,24 @@ def test_score_run_report():
     assert report["accuracy"] == 1.0
     assert report["by_capability"]["T1"]["n"] == 1
     assert "ci95" in report
+
+
+def test_parse_choice_robust_variants():
+    assert parse_choice("Answer: B", 4) == 1
+    assert parse_choice("answer is (c)", 4) == 2
+    assert parse_choice("**C**", 4) == 2
+    assert parse_choice("C.", 4) == 2
+    assert parse_choice("Option D", 4) == 3
+    assert parse_choice("The answer is B because the mug moved", 4) == 1
+    assert parse_choice("nonsense without letters", 4) is None
+
+
+def test_build_prompt_labels_views():
+    task = Task.from_dict({
+        "task_id": "m-1", "dataset": "mindedit", "capability": "T3", "answer_type": "choice",
+        "question": "How did the camera move from view1 to view3?", "choices": ["a", "b"],
+        "answer": 0, "images": ["i1", "i2", "i3"], "meta": {"views": "view1,view2,view3"},
+    })
+    prompt = build_prompt(task, "direct")
+    assert "image 1 = view1" in prompt and "image 3 = view3" in prompt
+    assert "How did the camera move" in prompt
