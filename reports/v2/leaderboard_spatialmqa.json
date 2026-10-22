@@ -1,0 +1,141 @@
+{
+  "protocol": "v2 task matrix — SpatialMQA (T1 spatial relations), single-image multiple choice",
+  "dataset": {
+    "name": "SpatialMQA",
+    "capability": "T1",
+    "n_total": 1612,
+    "splits": {
+      "test": 1076,
+      "validation": 536
+    }
+  },
+  "scoring": "deterministic letter match; accuracy over covered tasks; 95% bootstrap CI (1000 draws)",
+  "note": "models below 99% coverage are shown with their coverage and are not comparable as a final score",
+  "models": [
+    {
+      "model": "qwen3.8-flash",
+      "dataset": "spatialmqa",
+      "capability": "T1",
+      "coverage": 1.0,
+      "n_covered": 1612,
+      "n_total": 1612,
+      "n_errors": 0,
+      "accuracy": 0.7655,
+      "ci95": [
+        0.7444,
+        0.7854
+      ],
+      "complete": true,
+      "by_split": {
+        "test": {
+          "n": 1076,
+          "accuracy": 0.7649
+        },
+        "validation": {
+          "n": 536,
+          "accuracy": 0.7668
+        }
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "dataset": "spatialmqa",
+      "capability": "T1",
+      "coverage": 1.0,
+      "n_covered": 1612,
+      "n_total": 1612,
+      "n_errors": 0,
+      "accuracy": 0.7488,
+      "ci95": [
+        0.7289,
+        0.7674
+      ],
+      "complete": true,
+      "by_split": {
+        "test": {
+          "n": 1076,
+          "accuracy": 0.7426
+        },
+        "validation": {
+          "n": 536,
+          "accuracy": 0.7612
+        }
+      }
+    },
+    {
+      "model": "glm-5.3-flash",
+      "dataset": "spatialmqa",
+      "capability": "T1",
+      "coverage": 1.0,
+      "n_covered": 1612,
+      "n_total": 1612,
+      "n_errors": 0,
+      "accuracy": 0.7388,
+      "ci95": [
+        0.7177,
+        0.7587
+      ],
+      "complete": true,
+      "by_split": {
+        "test": {
+          "n": 1076,
+          "accuracy": 0.7351
+        },
+        "validation": {
+          "n": 536,
+          "accuracy": 0.7463
+        }
+      }
+    },
+    {
+      "model": "minimax-m3.1-flash",
+      "dataset": "spatialmqa",
+      "capability": "T1",
+      "coverage": 0.9994,
+      "n_covered": 1611,
+      "n_total": 1612,
+      "n_errors": 0,
+      "accuracy": 0.6232,
+      "ci95": [
+        0.6002,
+        0.6468
+      ],
+      "complete": false,
+      "by_split": {
+        "test": {
+          "n": 1075,
+          "accuracy": 0.6372
+        },
+        "validation": {
+          "n": 536,
+          "accuracy": 0.5951
+        }
+      }
+    },
+    {
+      "model": "mimo-v2.6-pro",
+      "dataset": "spatialmqa",
+      "capability": "T1",
+      "coverage": 1.0,
+      "n_covered": 1612,
+      "n_total": 1612,
+      "n_errors": 0,
+      "accuracy": 0.5459,
+      "ci95": [
+        0.5223,
+        0.5707
+      ],
+      "complete": true,
+      "by_split": {
+        "test": {
+          "n": 1076,
+          "accuracy": 0.5437
+        },
+        "validation": {
+          "n": 536,
+          "accuracy": 0.5504
+        }
+      }
+    }
+  ]
+}
