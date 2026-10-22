@@ -82,5 +82,5 @@ Outputs: `raw_forward.json`, `raw_reversed.json`, `structured_result.json`.
 * service: `StarLife-1-WSV-Lite` v1.0.0 (`Qwen3.8-27B` frozen backbone + 5 heads, A800-80GB),
   `POST /predict`, health `ready: true` at run time.
 * run: 2026-10-22, 120 calls, no retries needed, 0 failed pairs.
-* raw responses and the scoring script are in this repository so the numbers can be recomputed
-  without the service (raw JSON is included in the release artifact, not in git).
+* the scoring script is in this repository (`scripts/structured_track/`); the raw service responses
+  for this run are attached to release `v2.0-data-sources` as `structured_track_raw.zip` (14 KB).
