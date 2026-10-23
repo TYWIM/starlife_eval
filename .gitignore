@@ -30,3 +30,6 @@ runs/
 .env
 .env.*
 *_key.txt
+
+# Local-only notes (never pushed)
+_local/
