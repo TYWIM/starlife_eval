@@ -64,14 +64,15 @@ python -m starlife_eval.wsv run --suite pairs --model starlife-1-wsv \
 
 **未覆盖 ≠ 错**：空输出、超时、无法解析一律记为 `covered=false`，从准确率分母中剔除，覆盖率单独报告。所有准确率带 95% 任务级 bootstrap CI（1,000 次，`seed=20261022`）。
 
-## 数据包（下载即可复现）
+## 数据包（克隆即可复现）
 
-图像不进 git 仓库，随 release 分发（`openwsv-data-1.0.zip`，494.6 MB，
-sha256 `971090ee15347b016f5c4afd92b6a711481d81de169c9d45d55e64a6fef2ad63`）：
+图像不单独下载：数据包以 **13 个分片**随仓库提交在 `data/openwsv-data-1.0/`
+（合计 494.6 MB，拼回后的 zip sha256 = `971090ee15347b016f5c4afd92b6a711481d81de169c9d45d55e64a6fef2ad63`）。
+分片是为了绕开单文件 100 MB 限制，join 脚本会校验完整 sha256：
 
 ```bash
-python scripts/wsv/prepare_data.py --zip openwsv-data-1.0.zip --dest ./data \
-  --expect-sha256 971090ee15347b016f5c4afd92b6a711481d81de169c9d45d55e64a6fef2ad63
+python scripts/wsv/join_data.py --dest ./openwsv-data-1.0.zip \
+  --extract-to ./data
 export OPENWSV_DATA_ROOT=$PWD/data/openwsv-data-1.0
 ```
 
