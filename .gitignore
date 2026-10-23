@@ -11,8 +11,10 @@ dist/
 .pytest_cache/
 .pytest_tmp/
 
-# local data and caches (download the release instead)
-data/
+# local data and caches
+data/*
+!data/openwsv-data-1.0/
+!data/openwsv-data-1.0/*
 data_v2/
 features/
 checkpoints/
