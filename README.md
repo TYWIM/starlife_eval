@@ -64,11 +64,19 @@ python -m starlife_eval.wsv run --suite pairs --model starlife-1-wsv \
 
 **未覆盖 ≠ 错**：空输出、超时、无法解析一律记为 `covered=false`，从准确率分母中剔除，覆盖率单独报告。所有准确率带 95% 任务级 bootstrap CI（1,000 次，`seed=20261022`）。
 
-## 结果与文档
+## 数据包（下载即可复现）
 
-- 评测协议：[`docs/OPENWSV.md`](docs/OPENWSV.md)
-- 榜单结果：[`docs/RESULTS_OPENWSV.md`](docs/RESULTS_OPENWSV.md)
-- 历史版本（v1.5 结构化轨道、v2 文本评测）保留在 `docs/` 与 `reports/`，标注为历史口径，不进入 OpenWSV 榜。
+图像不进 git 仓库，随 release 分发（`openwsv-data-1.0.zip`，494.6 MB，
+sha256 `971090ee15347b016f5c4afd92b6a711481d81de169c9d45d55e64a6fef2ad63`）：
+
+```bash
+python scripts/wsv/prepare_data.py --zip openwsv-data-1.0.zip --dest ./data \
+  --expect-sha256 971090ee15347b016f5c4afd92b6a711481d81de169c9d45d55e64a6fef2ad63
+export OPENWSV_DATA_ROOT=$PWD/data/openwsv-data-1.0
+```
+
+包内包含：1,583 张单图题面图像、2,000 张前后帧（1,000 对 test）、两份 suite jsonl
+与逐文件 `SHA256SUMS`；29 题缺图按未覆盖处理，不计入准确率分母。
 
 ## 目录
 
