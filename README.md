@@ -1,59 +1,83 @@
-# OpenWSV (`starlife_eval`) — 世界状态视觉评测框架
+# OpenWSV (`starlife_eval`) — World-State Vision Benchmark framework
 
-**OpenWSV**（简称 **WSV**）是一个横测榜单：在**同一个冻结框架**下，同时评测
+**OpenWSV** (short: **WSV**) is a horizontal benchmark that evaluates, under **one frozen
+framework**:
 
-- **文本多模态模型（VLM）**：单图/多图多选、短答、JSON 输出；
-- **结构化世界模型（非视频生成）**：输入 before/after 两帧 + **框架检测器给出的物体框**，输出结构化变化、物体对关系与状态（StarLife-1-WSV 的 `POST /predict`）。
+- **text-only multimodal models (VLMs)**: multiple-choice / short-answer / JSON answers;
+- **structured world-state models (not video generation)**: consume a before/after frame pair
+  plus the **framework-provided object boxes**, and emit structured slots, object-pair
+  relations and events (via StarLife-1-WSV `POST /predict`).
 
-只有框架逐位一致，两类模型、不同轮次的结果才可比。
+Only if every framework component is byte-identical can results from different model classes
+and different runs be compared.
 
-## 冻结框架五件套
+## The frozen five
 
-| 冻结项 | 取值 | 落地位置 |
+| Item | Value | Where it lives |
 | --- | --- | --- |
-| 数据版本 | suite 文件 sha256（随包分发） | `src/starlife_eval/wsv/suites/*.jsonl` + 结果 JSON `framework.dataset_sha256` |
-| 检测器 | GroundingDINO-tiny，权重 sha256 固定、`box_threshold=0.2`、`text_threshold=0.2` | `wsv/config.py::DETECTOR` + `wsv/detector.py::FrozenDetector`（所有需要框的模型共用同一份输出） |
-| 提示词 | `openwsv-1` | `wsv/prompts.py::PROMPT_VERSION` |
-| 判分器 | `starlife_eval@<git commit>`，确定性判分，无 LLM judge | `wsv/scoring.py`、`wsv/state.py` |
-| 随机种子 | 采样 `20261020`，bootstrap `20261022` | `wsv/config.py::SEEDS` |
+| Dataset | sha256 of the suite files (shipped in the package) | `src/starlife_eval/wsv/suites/*.jsonl` + `framework.dataset_sha256` in result JSON |
+| Detector | GroundingDINO-tiny, weights sha256 pinned, `box_threshold=0.2`, `text_threshold=0.2` | `wsv/config.py::DETECTOR`, `wsv/detector.py::FrozenDetector` (all box-consuming models share the exact same boxes) |
+| Prompt | `openwsv-1` | `wsv/prompts.py::PROMPT_VERSION` |
+| Scorer | `starlife_eval@<git commit>`, deterministic, no LLM judge | `wsv/scoring.py`, `wsv/state.py` |
+| Seeds | sampling `20261020`, bootstrap `20261022` | `wsv/config.py::SEEDS` |
 
-> 检测器属于**框架**，不属于任何模型：否则"分数"退化成"检测器 × 状态模型"，无法归因、无法复现。
+> The detector belongs to the **framework**, not to any model: otherwise a score degenerates
+> into "detector × state model" and can be neither attributed nor reproduced.
 
-## 数据集（三套 suite）
+## Suites
 
-| suite | n | 说明 | 适用 |
+| suite | n | description | applies to |
 | --- | ---: | --- | --- |
-| `spatialmqa` | 1,612 | SpatialMQA 单图多选（T1 空间关系） | 文本 VLM |
-| `spatialmqa_relation` | 305 | 上述中 "Where is/are the X located relative to the Y?" 关系子集 | 文本 VLM + 结构化模型同表 |
-| `pairs` | 1,000 | `dataset_spatial_v3` test 划分的 before/after 帧对（T4–T6） | 结构化世界模型 |
+| `spatialmqa` | 1,612 | single-image multiple-choice spatial relation questions (T1) | text VLMs |
+| `spatialmqa_relation` | 305 | the "Where is/are the X located relative to the Y?" subset of the above | text VLMs + structured models, same table |
+| `pairs` | 1,000 | before/after frame pairs from the `dataset_spatial_v3` test split (T4–T6) | structured world-state models |
 
-`pairs` 的 GT 来自合成场景生成器（`spatial3d-1.0.0`，固定种子），**不是真实拍摄**；关系/变化/接触支撑标签由生成器给出。
+`pairs` ground truth is produced by the synthetic scene generator (`spatial3d-1.0.0`, fixed
+seeds) — **not real footage**; relation/change/contact labels come from the generator.
 
-## 快速开始
+## Data bundle (clone and reproduce)
+
+Images are not downloaded separately: the bundle ships **as 13 parts** inside the repo under
+`data/openwsv-data-1.0/` (494.6 MB total; the joined zip must hash to
+`971090ee15347b016f5c4afd92b6a711481d81de169c9d45d55e64a6fef2ad63`). The join script checks
+the full zip hash and then unpacks:
+
+```bash
+python scripts/wsv/join_data.py --dest ./openwsv-data-1.0.zip --extract-to ./data
+export OPENWSV_DATA_ROOT=$PWD/data/openwsv-data-1.0
+```
+
+The bundle contains 1,583 single-image question images, 2,000 frames (1,000 test pairs), both
+suite jsonl files and a per-file `SHA256SUMS`. 29 tasks reference images missing from the
+public release; they are scored as **not covered** and excluded from the accuracy denominator.
+
+## Quick start
 
 ```bash
 pip install -e ".[dev,detector]"
 
-# 列出 suite（含 sha256）
+# list suites with their sha256
 python -m starlife_eval.wsv --list-suites
 
-# 文本 VLM（OpenAI 兼容网关）
+# text VLM through an OpenAI-compatible gateway
 python -m starlife_eval.wsv run --suite spatialmqa --model qwen3.8-flash \
   --adapter openai --base-url "$OPENAI_BASE_URL" --api-key "$OPENAI_API_KEY" \
-  --out reports/openwsv/spatialmqa__qwen3.8-flash.json --limit 50
+  --out reports/openwsv/spatialmqa__qwen3.8-flash.json
 
-# 结构化世界模型（框架检测器 + StarLife-1-WSV API）
+# structured world-state model (framework detector + StarLife-1-WSV API)
 python -m starlife_eval.wsv run --suite pairs --model starlife-1-wsv \
   --adapter wsv --api-url "$WSV_API_URL" --api-key "$WSV_API_KEY" \
-  --out reports/openwsv/pairs__starlife-1-wsv.json --limit 10
+  --out reports/openwsv/pairs__starlife-1-wsv.json
 ```
 
-结果 JSON 契约（稳定字段）：
+## Result JSON contract
 
 ```json
-{"framework": {"version": "openwsv-1", "dataset_sha256": {...},
-               "detector": {"model": "...", "revision": "...", "weights_sha256": "...",
-                            "box_threshold": 0.2, "text_threshold": 0.2},
+{"framework": {"version": "openwsv-1", "dataset_sha256": {},
+               "detector": {"model": "IDEA-Research/grounding-dino-tiny",
+                            "revision": "a2bb814dd30d776dcf7e30523b00659f4f141c71",
+                            "weights_sha256": "1a2412ef...", "box_threshold": 0.2,
+                            "text_threshold": 0.2},
                "prompt_version": "openwsv-1", "scorer": "starlife_eval@<commit>",
                "seed": 20261020, "bootstrap_seed": 20261022},
  "suite": "spatialmqa", "n": 1612,
@@ -62,35 +86,25 @@ python -m starlife_eval.wsv run --suite pairs --model starlife-1-wsv \
  "per_task": [{"task_id": "...", "covered": true, "pred": 0, "gold": 1, "error": null}]}
 ```
 
-**未覆盖 ≠ 错**：空输出、超时、无法解析一律记为 `covered=false`，从准确率分母中剔除，覆盖率单独报告。所有准确率带 95% 任务级 bootstrap CI（1,000 次，`seed=20261022`）。
+**Not covered ≠ wrong**: empty output, timeout and unparseable answers are recorded as
+`covered=false` and removed from the accuracy denominator; coverage is reported separately.
+Every accuracy carries a 95% task-level bootstrap CI (1,000 iterations, `seed=20261022`).
 
-## 数据包（克隆即可复现）
-
-图像不单独下载：数据包以 **13 个分片**随仓库提交在 `data/openwsv-data-1.0/`
-（合计 494.6 MB，拼回后的 zip sha256 = `971090ee15347b016f5c4afd92b6a711481d81de169c9d45d55e64a6fef2ad63`）。
-分片是为了绕开单文件 100 MB 限制，join 脚本会校验完整 sha256：
-
-```bash
-python scripts/wsv/join_data.py --dest ./openwsv-data-1.0.zip \
-  --extract-to ./data
-export OPENWSV_DATA_ROOT=$PWD/data/openwsv-data-1.0
-```
-
-包内包含：1,583 张单图题面图像、2,000 张前后帧（1,000 对 test）、两份 suite jsonl
-与逐文件 `SHA256SUMS`；29 题缺图按未覆盖处理，不计入准确率分母。
-
-## 目录
+## Layout
 
 ```
-src/starlife_eval/wsv/         # 框架：config / detector / tasks / prompts / adapters / scoring / state / runner / cli
-src/starlife_eval/wsv/suites/  # 冻结任务文件（jsonl，随包分发）
-src/starlife_eval/verifiers/   # 结构化判分实现（pair_protocol 等）
-tests/                         # 离线单测（pytest，无需网络/GPU）
-scripts/wsv/run_suite.py       # 命令行薄封装示例
+src/starlife_eval/wsv/         # framework: config / detector / tasks / prompts / adapters / scoring / state / runner / cli
+src/starlife_eval/wsv/suites/  # frozen task files (jsonl, shipped in the package)
+src/starlife_eval/verifiers/   # structured scoring (pair_protocol etc.)
+data/openwsv-data-1.0/         # 13 data-bundle parts + hashes
+scripts/wsv/                   # join/verify data bundle, run helpers
+tests/                         # offline unit tests (pytest, no network/GPU)
 ```
 
-## 许可与数据说明
+## License and data notes
 
-- 代码：MIT（沿用仓库 LICENSE）。
-- 数据：合成数据由 `spatial3d-1.0.0` 生成；SpatialMQA 任务与真值来自其公开数据集，按原许可引用。
-- 榜单只报指标、覆盖率与 CI；不报综合分排名，不使用 SOTA/榜首表述。
+- Code: MIT (see `LICENSE`).
+- Data: synthetic scenes generated by `spatial3d-1.0.0`; the spatial-relation question set is
+  derived from its public dataset under the original license.
+- The benchmark reports metrics, coverage and CIs only; it makes no composite ranking claim
+  beyond the published composite definition and uses no SOTA/#1 wording.
