@@ -20,6 +20,8 @@ runs/
 *.npz
 *.pt
 *.jsonl
+# framework-frozen suites ship with the package (see docs/OPENWSV.md)
+!src/starlife_eval/wsv/suites/*.jsonl
 *.tar
 
 # secrets

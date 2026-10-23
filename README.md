@@ -1,188 +1,87 @@
-# starlife_eval — Spatial & Relational Understanding Benchmark (v1.5)
+# OpenWSV (`starlife_eval`) — 世界状态视觉评测框架
 
-Evaluation toolkit for the **openwsv** benchmark: given before/after RGB frames of a tabletop
-scene plus detected object slots, a model has to report what changed, how slots relate spatially
-and physically, and the resulting world state.
+**OpenWSV**（简称 **WSV**）是一个横测榜单：在**同一个冻结框架**下，同时评测
 
-This repository is the reference implementation of the benchmark's scoring pipeline. It can score
-**any multimodal model** that speaks the OpenAI-compatible chat-completions API (zero-shot), and it
-ships the frozen **local heads** baseline (Qwen3.8-27B slot features + 5 trained heads) used on the
-public leaderboard.
+- **文本多模态模型（VLM）**：单图/多图多选、短答、JSON 输出；
+- **结构化世界模型（非视频生成）**：输入 before/after 两帧 + **框架检测器给出的物体框**，输出结构化变化、物体对关系与状态（StarLife-1-WSV 的 `POST /predict`）。
 
-> **Data note — synthetic.** The v1.5 dataset (`dataset_spatial_v3`) is **synthetic**:
-> procedurally rendered 1024×768 tabletop scenes from generator `spatial3d-1.0.0` (fixed seed
-> 20261020, 5,000 pairs / 10,000 frames). It is not real-world capture. Real-world data collection
-> is in progress and will be released as a separate version.
+只有框架逐位一致，两类模型、不同轮次的结果才可比。
 
-## Why this exists
+## 冻结框架五件套
 
-Most "spatial reasoning" comparisons are prompt-only and unreproducible. This benchmark fixes the
-pipeline instead:
+| 冻结项 | 取值 | 落地位置 |
+| --- | --- | --- |
+| 数据版本 | suite 文件 sha256（随包分发） | `src/starlife_eval/wsv/suites/*.jsonl` + 结果 JSON `framework.dataset_sha256` |
+| 检测器 | GroundingDINO-tiny，权重 sha256 固定、`box_threshold=0.2`、`text_threshold=0.2` | `wsv/config.py::DETECTOR` + `wsv/detector.py::FrozenDetector`（所有需要框的模型共用同一份输出） |
+| 提示词 | `openwsv-1` | `wsv/prompts.py::PROMPT_VERSION` |
+| 判分器 | `starlife_eval@<git commit>`，确定性判分，无 LLM judge | `wsv/scoring.py`、`wsv/state.py` |
+| 随机种子 | 采样 `20261020`，bootstrap `20261022` | `wsv/config.py::SEEDS` |
 
-- **fixed sample** — a deterministic 60-pair sample from the frozen test split (seed `20261020`),
-  the same pairs for every model;
-- **fixed GT** — per-slot change classes, relation triples, and contact/support labels come from the
-  scene generator, not from another model;
-- **fixed scoring** — 7 equal-weight dimensions (0–100) and a published composite formula,
-  implemented in `src/starlife_eval/verifiers/`;
-- **fixed outputs** — `report.json`, `report.md`, `leaderboard.generated.json`, plus 95% pair-level
-  bootstrap confidence intervals (`tools/confidence_intervals.py`).
+> 检测器属于**框架**，不属于任何模型：否则"分数"退化成"检测器 × 状态模型"，无法归因、无法复现。
 
-## Repo layout
+## 数据集（三套 suite）
 
-```
-src/starlife_eval/     scoring pipeline (dataset loading, adapters, verifiers, report writer)
-tests/                 unit + parity tests (pytest)
-tools/                 confidence intervals, reliability, difficulty curve, data-root preparation
-configs/               v1.5 leaderboard configs + template for your own model
-scripts/               method pipeline: feature extraction, head training, slot geometry, vocab
-reports/v1.5/          results archived for the public leaderboard (v3 heads + completed cloud rows)
-docs/                  method, data card, reproduction guide, test-suite design
-```
+| suite | n | 说明 | 适用 |
+| --- | ---: | --- | --- |
+| `spatialmqa` | 1,612 | SpatialMQA 单图多选（T1 空间关系） | 文本 VLM |
+| `spatialmqa_relation` | 305 | 上述中 "Where is/are the X located relative to the Y?" 关系子集 | 文本 VLM + 结构化模型同表 |
+| `pairs` | 1,000 | `dataset_spatial_v3` test 划分的 before/after 帧对（T4–T6） | 结构化世界模型 |
 
-## Quick start — score your own multimodal model (zero-shot)
+`pairs` 的 GT 来自合成场景生成器（`spatial3d-1.0.0`，固定种子），**不是真实拍摄**；关系/变化/接触支撑标签由生成器给出。
 
-You need: Python ≥ 3.11, and an OpenAI-compatible endpoint (any VLM).
-
-1. **Get the dataset** (synthetic, ~1.2 GB) from the
-   [v1.5 release](https://github.com/TYWIM/starlife_eval/releases/tag/v1.5): download
-   `dataset_spatial_v3.tar` and unpack it so that you have:
-   ```
-   <data_root>/dataset_spatial_v3/{manifest.jsonl, meta.json, frames/, stats.csv}
-   ```
-   `configs/template_multimodal_model.json` is the config to edit. Frozen slot features /
-   trained heads are only needed to reproduce the organizers' reference baseline and are not part
-   of the benchmark release.
-2. **Install**
-   ```bash
-   pip install -e .
-   ```
-3. **Describe your model** in a config (copy `configs/template_multimodal_model.json`):
-   ```json
-   {
-     "dataset": "dataset_spatial_v3",
-     "split": "test",
-     "n_pairs": 60,
-     "sample_seed": 20261020,
-     "models": [{
-       "id": "my-vlm",
-       "kind": "chat_vlm",
-       "mode": "ZERO-SHOT",
-       "family": "MyModel",
-       "provider": "MyLab",
-       "base_url": "https://your-endpoint/v1",
-       "model": "your-model-name",
-       "api_key_env": "MY_VLM_API_KEY",
-       "max_tokens": 4000
-     }]
-   }
-   ```
-4. **Run**
-   ```bash
-   export MY_VLM_API_KEY=...            # never commit keys
-   python -m starlife_eval run --config my_vlm.json --data-root <data_root> --out runs/my-vlm --live
-   ```
-   `runs/my-vlm/report.json` and `leaderboard.generated.json` contain the 7 dimensions and the
-   composite score; the same 60 pairs and the same GT are used for every model.
-
-Notes:
-
-- `--live` enables network calls; without it the runner replays the cached JSONL in `source`.
-- The prompt contract (two images + slot table, JSON answer schema) is in
-  `src/starlife_eval/models/openai_compat.py`.
-- Raw calls are cached as JSONL, so interrupted runs resume and stay auditable.
-
-## Organizer model (participates under the same protocol)
-
-The organizers' model (frozen Qwen3.8-27B slot features + five trained heads, see
-[`baselines/`](baselines/)) takes part in the ranking like any other entry: same data, same prompt,
-same answer schema, same scorer. Its head-level metrics are auxiliary diagnostics only — the main
-score comes from the unified task outputs, so models without heads are fully comparable.
-
-Model weights/features are not part of the benchmark release; what is published for every entry
-(including ours) is the model output cache, so every row can be re-scored and inspected.
-
-See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the plan to grow the protocol into a task-matrix
-benchmark aligned with SpatialMQA / Spatial-DISE / Spatial457 / MindEdit-Bench.
-
-## v2 task-matrix benchmark (integration in progress)
-
-The pilot board below scores structured change/relation outputs on a synthetic dataset. The **v2**
-protocol generalises the benchmark to any multimodal or world model: authoritative public task sets
-(SpatialMQA, Spatial457, MindEdit-Bench, Spatial-DISE where licenses allow) plus an own diagnostic
-supplement, a unified task/prediction JSONL schema, three prompt variants, deterministic scoring,
-bootstrap CIs and paired significance tests.
+## 快速开始
 
 ```bash
-python tools/fetch_benchmarks.py --list
-python -m starlife_eval.v2 run   --tasks data/tasks/spatialmqa.jsonl \
-  --model configs/template_multimodal_model.json --out runs/v2/my-model
-python -m starlife_eval.v2 score --tasks data/tasks/spatialmqa.jsonl \
-  --pred runs/v2/my-model/predictions.jsonl --out runs/v2/my-model --model-name my-model
-python -m starlife_eval.v2 compare --tasks data/tasks/spatialmqa.jsonl \
-  --pred-a runs/a/predictions.jsonl --pred-b runs/b/predictions.jsonl
+pip install -e ".[dev,detector]"
+
+# 列出 suite（含 sha256）
+python -m starlife_eval.wsv --list-suites
+
+# 文本 VLM（OpenAI 兼容网关）
+python -m starlife_eval.wsv run --suite spatialmqa --model qwen3.8-flash \
+  --adapter openai --base-url "$OPENAI_BASE_URL" --api-key "$OPENAI_API_KEY" \
+  --out reports/openwsv/spatialmqa__qwen3.8-flash.json --limit 50
+
+# 结构化世界模型（框架检测器 + StarLife-1-WSV API）
+python -m starlife_eval.wsv run --suite pairs --model starlife-1-wsv \
+  --adapter wsv --api-url "$WSV_API_URL" --api-key "$WSV_API_KEY" \
+  --out reports/openwsv/pairs__starlife-1-wsv.json --limit 10
 ```
 
-The organizers' model participates under the same protocol; head-level metrics are auxiliary only.
-Full contract: [`docs/BENCHMARK_V2.md`](docs/BENCHMARK_V2.md).
+结果 JSON 契约（稳定字段）：
 
-## What is scored
+```json
+{"framework": {"version": "openwsv-1", "dataset_sha256": {...},
+               "detector": {"model": "...", "revision": "...", "weights_sha256": "...",
+                            "box_threshold": 0.2, "text_threshold": 0.2},
+               "prompt_version": "openwsv-1", "scorer": "starlife_eval@<commit>",
+               "seed": 20261020, "bootstrap_seed": 20261022},
+ "suite": "spatialmqa", "n": 1612,
+ "model": {"id": "...", "kind": "vlm", "uses_harness_boxes": false, "adapter": "openai"},
+ "metrics": {"accuracy": 0.0, "coverage": 1.0, "ci95": [0.0, 0.0]},
+ "per_task": [{"task_id": "...", "covered": true, "pred": 0, "gold": 1, "error": null}]}
+```
 
-| dimension | metric | definition |
-|---|---|---|
-| change_top1 | per-slot 4-class top-1 | none / appeared / displaced / disappeared |
-| change_balance | macro-F1 over the 4 change classes | equal weight for rare classes |
-| relation_type | relation-class accuracy | per `(from_slot, to_slot)` triple, 11 classes |
-| rel_pos | relative-position accuracy | 10 classes, matched on the same triples |
-| attrs | contact / support F1 | two binary physical attributes |
-| event_f1 | event-level macro-F1 | predictions translated into the four `WorldEvent` kinds |
-| state_consistency | world-state replay agreement | after-scene objects / changes / relations / attributes |
+**未覆盖 ≠ 错**：空输出、超时、无法解析一律记为 `covered=false`，从准确率分母中剔除，覆盖率单独报告。所有准确率带 95% 任务级 bootstrap CI（1,000 次，`seed=20261022`）。
 
-Composite = equal-weight mean of the available dimensions (missing dimensions are removed from the
-denominator, never scored as 0). See `docs/METHOD.md` for metric definitions and the 60-pair
-sampling protocol.
+## 结果与文档
 
-## Reproducibility rules
+- 评测协议：[`docs/OPENWSV.md`](docs/OPENWSV.md)
+- 榜单结果：[`docs/RESULTS_OPENWSV.md`](docs/RESULTS_OPENWSV.md)
+- 历史版本（v1.5 结构化轨道、v2 文本评测）保留在 `docs/` 与 `reports/`，标注为历史口径，不进入 OpenWSV 榜。
 
-- `sample_pairs(manifest, split, 60, seed=20261020)` = `sorted(random.Random(20261020).sample(idx, 60))`;
-  the sample indices are part of every `report.json`.
-- Bootstrap intervals: 1,000 pair-level resamples, seed `20261021`.
-- Every `report.json` embeds config, dataset/feature/checkpoint sha256 (16 hex chars), timestamps and
-  per-metric N/A reasons; nothing is filled in manually.
-- API keys live only in environment variables; the runner never writes them to disk.
+## 目录
 
-## Roadmap
+```
+src/starlife_eval/wsv/         # 框架：config / detector / tasks / prompts / adapters / scoring / state / runner / cli
+src/starlife_eval/wsv/suites/  # 冻结任务文件（jsonl，随包分发）
+src/starlife_eval/verifiers/   # 结构化判分实现（pair_protocol 等）
+tests/                         # 离线单测（pytest，无需网络/GPU）
+scripts/wsv/run_suite.py       # 命令行薄封装示例
+```
 
-The current 60-pair change/relation board is a **v1.5 pilot**, not an authoritative benchmark.
-`docs/ROADMAP.md` describes the plan for a task-matrix benchmark (multi-hop spatial QA, 6D pose,
-counterfactual reasoning, world-state consistency, real-world human-verified subset) with
-statistical significance and external-benchmark cross-validation. The organizers' model is an ordinary entry; the docs contain numbers, confidence intervals and
-significance markers only — no SOTA/top-1 wording.
+## 许可与数据说明
 
-## Status of the public leaderboard data
-
-### v2 task matrix (current campaign)
-
-[`docs/RESULTS_SPATIALMQA.md`](docs/RESULTS_SPATIALMQA.md) and [`reports/v2/`](reports/v2/): five
-general-purpose multimodal models on one cell of the v2 matrix — **T1 SpatialMQA**, 1,612 single-image
-multiple-choice tasks (test 1,076 + validation 536), deterministic scoring with 95% bootstrap CI and
-per-model coverage. MindEdit (T3) is withdrawn from this report (truncated replies had been scored as
-wrong answers and a prompt revision invalidated the remaining rows; see the doc) and will be published
-only after a clean, fully covered re-run. The organizers' model is not in this text-only
-comparison. It is scored on a separate **structured-input track**
-([`docs/RESULTS_STRUCTURED_TRACK.md`](docs/RESULTS_STRUCTURED_TRACK.md),
-[`reports/v2/structured_track.json`](reports/v2/structured_track.json)): the in-house model consumes
-before/after frames plus detector boxes and emits structured events, so its 60-pair numbers
-(direction-matched, ground-truth detections, event F1 and state consistency N/A) are reported on
-their own table and are not comparable with the text rows.
-
-### v1.5 pilot (previous board)
-
-The published board currently contains four rows scored on this v1.5 sample
-(`starlife-v1-wsv` local heads, `deepseek-flash`, `gpt-6.1-sol`, `gemini-3.8-flash`); the other rows
-are the previous v1.4 sample until their v1.5 rerun completes. See
-[`reports/v1.5/`](reports/v1.5/) and the site's mixed-data note.
-
-## License
-
-Code: MIT (`LICENSE`). Synthetic dataset and trained heads: CC BY 4.0. See `docs/DATA_CARD.md`.
+- 代码：MIT（沿用仓库 LICENSE）。
+- 数据：合成数据由 `spatial3d-1.0.0` 生成；SpatialMQA 任务与真值来自其公开数据集，按原许可引用。
+- 榜单只报指标、覆盖率与 CI；不报综合分排名，不使用 SOTA/榜首表述。

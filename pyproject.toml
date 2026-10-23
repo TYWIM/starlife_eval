@@ -4,18 +4,22 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "starlife-eval"
-version = "0.1.0"
-description = "StarLife-1-WSV observation-model evaluation harness (real metrics, no mock data)"
+version = "0.2.0"
+description = "OpenWSV (WSV) benchmark harness: frozen framework for text-VLM and structured world-model evaluation"
 requires-python = "==3.11.*"
 dependencies = ["numpy>=1.26"]
 
 [project.optional-dependencies]
-# 本地头推理需要 torch；云端回放/指标计算只需要 numpy
+# 本地头推理 / 框架检测器需要 torch；云端回放/指标计算只需要 numpy
 torch = ["torch>=2.2"]
+detector = ["torch>=2.2", "transformers>=4.44", "huggingface_hub>=0.24", "Pillow>=10"]
 dev = ["pytest>=8"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"starlife_eval.wsv" = ["suites/*.jsonl"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
