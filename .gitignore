@@ -33,3 +33,7 @@ runs/
 
 # Local-only notes (never pushed)
 _local/
+
+# Local agent rules (never pushed)
+AGENTS.md
+reports/
