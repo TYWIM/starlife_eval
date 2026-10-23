@@ -37,3 +37,6 @@ _local/
 # Local agent rules (never pushed)
 AGENTS.md
 reports/
+
+# Leaderboard site repo (nested git, pushed separately)
+/site/
