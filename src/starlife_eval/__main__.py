@@ -1,5 +1,5 @@
-"""允许 ``python -m starlife_eval ...``。"""
+"""Allow ``python -m starlife_eval <args>`` as a shortcut for the WSV CLI."""
 
-from .cli import main
+from .wsv.cli import main
 
 raise SystemExit(main())
