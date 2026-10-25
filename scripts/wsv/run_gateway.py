@@ -189,18 +189,15 @@ def preflight_suite(
     return [], missing
 
 
-#: suite 当前冻结文件 sha256 缓存（单进程内文件不会变）
-_SHA_CACHE: dict[str, str] = {}
-
-
+#: suite sha 每次调用都重新读盘（不缓存）：suite 可能在长跑期间被重新生成
+#: （Lead 重发 T7 时就是这种情况），缓存快照会把新文件误判为 stale。
+#: 文件 ~0.6MB，调用点在每个 run 的 skip 检查和 SUMMARY 重写，开销可忽略。
 def current_dataset_sha(suite: str) -> str | None:
-    """返回 suite 当前冻结文件 sha256；文件缺失返回 ``None``。"""
-    if suite not in _SHA_CACHE:
-        try:
-            _SHA_CACHE[suite] = dataset_sha256(suite)
-        except (FileNotFoundError, ValueError):
-            return None
-    return _SHA_CACHE[suite]
+    """返回 suite **当前** 冻结文件 sha256（每次读盘）；文件缺失返回 ``None``。"""
+    try:
+        return dataset_sha256(suite)
+    except (FileNotFoundError, ValueError):
+        return None
 
 
 def _is_complete(path: Path, suite: str, expected_n: int) -> tuple[bool, str]:
