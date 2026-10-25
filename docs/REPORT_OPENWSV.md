@@ -130,7 +130,7 @@ v3 的目标：**同一批题、同一份 GT、同一个冻结框架、可复现
 - 共 2,000 帧 1,024×768 JPEG（质量 90、4:4:4）：T5 600 对 = 1,200 帧（before/after），T7 400 对 = 800 帧（frame1/frame2）；每个任务的两帧共享同一相机与同一房间。
 - T5 `relation_change`：4 类均衡各 150（appeared / disappeared / changed / stayed same）。A–B 关系签名 = 图像平面方位（left/right/above/below）+ 投影中心距桶（close/mid/far），类别由前后帧结构化状态差分产生，不依赖文件名。
 - T7 `cross_frame`：两帧物体集合完全不交（没有物体同时出现在两帧），每帧恰好 3 个物体；4 个方向各 100（left/right/above/below）。GT 由两物体投影 bbox 中心的**主方向**判定，要求主方向 ≥1.5× 次方向、主轴间距 ≥8% 画幅（宽或高）。
-- 确定性：生成器逐字节可复现（固定 JPEG 参数、无时间戳/绝对路径）；`python -m scripts.wsv.gen.build --force --determinism-check` 会用两个独立进程各渲染前 5 个任务、逐文件比对 sha256（套件 jsonl 也参与对比），随后写出 `SHA256SUMS`/`meta.json`/`README.md`。数据包约 79 MB，**不进 git**，按上述命令在本地再生成；套件 sha256：`relation_change` = `0166b005bae55a5473a30a65c1398e84bae2a7c34631f1e2b62ec194475bba7f`，`cross_frame` = `9f3e393223f7fb5fbc4ced3458978aae30496294fca5cf4ac37ccb7af0b26ccf`。
+- 确定性：生成器逐字节可复现（固定 JPEG 参数、无时间戳/绝对路径）；`python -m scripts.wsv.gen.build --force --determinism-check` 会用两个独立进程各渲染前 5 个任务、逐文件比对 sha256（套件 jsonl 也参与对比），随后写出 `SHA256SUMS`/`meta.json`/`README.md`。数据包约 79 MB，**不进 git**，按上述命令在本地再生成；套件 sha256：`relation_change` = `0166b005bae55a5473a30a65c1398e84bae2a7c34631f1e2b62ec194475bba7f`，`cross_frame` = `d11e0ff5d72fea7fbe948edb8f567c470b4d567bdc3e6fd2ff102792ec9dfb91`（2026-10-25 只把 T7 题面措辞明确为 "primary image-plane direction"，未重渲染任何图像，2,000 帧与 T5 套件字节不变）。
 
 ### 6.4 当前发布规模（openwsv-1，7 套 suite）
 

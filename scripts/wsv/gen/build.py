@@ -681,6 +681,11 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=SEED, help=f"RNG seed (contract default {SEED})")
     parser.add_argument("--force", action="store_true", help="delete an existing generated data dir first")
     parser.add_argument("--no-images", action="store_true", help="skip rendering (planning + jsonl only)")
+    parser.add_argument(
+        "--refresh-suites",
+        action="store_true",
+        help="regenerate suite jsonl + data-package files from the existing data dir; never deletes or re-renders frames",
+    )
     parser.add_argument("--no-data-files", action="store_true", help="skip README.md / meta.json / SHA256SUMS")
     parser.add_argument("--no-sheets", action="store_true", help="skip the contact sheets")
     parser.add_argument("--t5-sheet", type=str, default=None, help="T5 contact sheet path")
@@ -739,20 +744,41 @@ def main(argv: list[str] | None = None) -> int:
     rows_t5 = build_rows_t5(plans_t5)
     rows_t7 = build_rows_t7(plans_t7)
 
-    if data_dir.exists():
-        if not args.force:
-            print(
-                f"ERROR: {data_dir} already exists; pass --force to regenerate it "
-                "(the generator only ever deletes its own openwsv-data-1.1 directory).",
-                file=sys.stderr,
-            )
+    if args.refresh_suites:
+        # Targeted refresh: rows / data-package files are rebuilt from the frozen
+        # generator, but the existing JPEG frames are reused byte-for-byte.  This is
+        # the path for wording-only fixes (e.g. a question template change) where the
+        # rendered images must not move.
+        if args.no_images:
+            print("ERROR: --refresh-suites reuses the existing frames; drop --no-images.", file=sys.stderr)
             return 2
-        shutil.rmtree(data_dir)
-    (data_dir / T5_FRAMES_DIR).mkdir(parents=True, exist_ok=True)
-    (data_dir / T7_FRAMES_DIR).mkdir(parents=True, exist_ok=True)
+        if not data_dir.exists():
+            print(f"ERROR: --refresh-suites requires an existing data dir at {data_dir}; "
+                  "run a full generation instead.", file=sys.stderr)
+            return 2
+        missing = [folder for folder in (T5_FRAMES_DIR, T7_FRAMES_DIR)
+                   if not (data_dir / folder).is_dir()]
+        if missing:
+            print(f"ERROR: data dir {data_dir} is missing {', '.join(missing)}; "
+                  "run a full generation instead.", file=sys.stderr)
+            return 2
+        if not args.quiet:
+            print(f"refresh mode: reusing existing frames in {data_dir} (no deletion, no rendering)")
+    else:
+        if data_dir.exists():
+            if not args.force:
+                print(
+                    f"ERROR: {data_dir} already exists; pass --force to regenerate it "
+                    "(the generator only ever deletes its own openwsv-data-1.1 directory).",
+                    file=sys.stderr,
+                )
+                return 2
+            shutil.rmtree(data_dir)
+        (data_dir / T5_FRAMES_DIR).mkdir(parents=True, exist_ok=True)
+        (data_dir / T7_FRAMES_DIR).mkdir(parents=True, exist_ok=True)
 
     render_info = {"seconds": 0.0, "frames": 0, "bytes": 0, "workers": workers, "seconds_per_frame": 0.0}
-    if not args.no_images:
+    if not args.no_images and not args.refresh_suites:
         jobs = build_jobs(plans_t5, plans_t7, data_dir)
         render_info = render_jobs(jobs, workers, quiet=args.quiet)
 
@@ -770,7 +796,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"wrote {suite_paths[name]} ({suite_sizes[name]} B, sha256 {suite_sha256[name]})")
 
     sheets_info = None
-    if not args.no_sheets and not args.no_images:
+    if not args.no_sheets and not args.no_images and not args.refresh_suites:
         sheets_info = write_contact_sheets(
             rows_t5, rows_t7, data_root, t5_sheet_path, t7_sheet_path, quiet=args.quiet
         )

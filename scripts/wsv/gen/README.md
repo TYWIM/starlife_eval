@@ -59,9 +59,18 @@ C:\Users\MECHREVO\miniconda3\python.exe -X utf8 -m scripts.wsv.gen.build \
     --limit 5 --determinism-check --force
 ```
 
+Wording-only refresh — rebuilds both suite jsonl files and the data-package files
+(`README.md` / `meta.json` / `SHA256SUMS`) from an existing data directory, without
+deleting or re-rendering a single frame (all 2,000 JPEGs stay byte-identical):
+
+```bash
+C:\Users\MECHREVO\miniconda3\python.exe -X utf8 -m scripts.wsv.gen.build \
+    --refresh-suites
+```
+
 Useful flags: `--limit N`, `--out-root DIR`, `--workers N`, `--seed N`,
-`--no-images`, `--no-data-files`, `--no-sheets`, `--report PATH`,
-`--determinism-check`, `--force`, `--quiet`.
+`--no-images`, `--no-data-files`, `--no-sheets`, `--refresh-suites`,
+`--report PATH`, `--determinism-check`, `--force`, `--quiet`.
 
 ## Ground truth
 
@@ -79,8 +88,9 @@ Useful flags: `--limit N`, `--out-root DIR`, `--workers N`, `--seed N`,
 - **T7 `cross_frame`** — frame1 and frame2 have completely disjoint object sets
   (no object appears in both), 3 objects per frame, same camera.
   Question: "The {X} appears only in the first image, and the {Y} appears only in
-  the second image. In the shared camera view, where is the {X} relative to the
-  {Y}?" Choices `[Left. / Right. / Above. / Below.]`, 100 tasks per direction.
+  the second image. In the shared camera view, what is the primary image-plane
+  direction of the {X} relative to the {Y}?" Choices
+  `[Left. / Right. / Above. / Below.]`, 100 tasks per direction.
   The direction is measured between projected bbox centres and is required to be
   unambiguous: the dominant axis must dominate by >= 1.5x and the main-axis gap
   must be >= 8% of the image width/height.
@@ -99,6 +109,12 @@ renders the first 5 tasks of each suite twice in fresh processes and compares
 file-by-file sha256; the generation report records `identical=True` and the
 combined digest.  Changing `SUPERSAMPLE`, the JPEG parameters or the room/camera
 constants changes the images and therefore the canonical hashes.
+
+For a wording-only change (e.g. the 2026-10-25 T7 question clarification),
+`--refresh-suites` regenerates the suite files and data-package metadata from the
+same seed while reusing the frames; two consecutive refresh runs are
+byte-identical, and a sha256 snapshot of the frames before/after shows zero
+changes.
 
 ## Cost
 

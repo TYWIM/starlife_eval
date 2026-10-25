@@ -42,13 +42,13 @@ def _load_aggregator():
     return module
 
 
-def _fake_report(model_id: str, suite: str, n: int = 4, correct: int = 3) -> dict:
+def _fake_report(model_id: str, suite: str, n: int = 4, correct: int = 3, sha: str = "") -> dict:
     per_task = [
         {"task_id": f"{suite}-{i}", "covered": i < n, "pred": 0 if i < correct else 1, "gold": 0, "error": None}
         for i in range(n)
     ]
     return {
-        "framework": {"version": "openwsv-1"},
+        "framework": {"version": "openwsv-1", "dataset_sha256": sha},
         "suite": suite,
         "n": n,
         "model": {"id": model_id, "kind": "vlm", "uses_harness_boxes": False, "adapter": "fake"},
@@ -75,12 +75,13 @@ def _payload() -> dict:
 
 def test_aggregate_fills_capability_boards_and_overall(tmp_path):
     module = _load_aggregator()
+    suite_shas = module._suite_shas()
     reports = tmp_path / "reports"
     reports.mkdir()
     suites = {"t4": "change", "t5": "relation_change", "t6": "state_replay", "t7": "cross_frame"}
     for suite in suites.values():
         (reports / f"{suite}__cn_fake.json").write_text(
-            json.dumps(_fake_report("cn:fake", suite)), encoding="utf-8"
+            json.dumps(_fake_report("cn:fake", suite, sha=suite_shas[suite])), encoding="utf-8"
         )
     payload_path = tmp_path / "payload.json"
     payload_path.write_text(json.dumps(_payload()), encoding="utf-8")
@@ -99,12 +100,31 @@ def test_aggregate_fills_capability_boards_and_overall(tmp_path):
     assert len(overall["rows"][0]["ci"]) == 2
 
 
-def test_aggregate_leaves_boards_pending_when_partial(tmp_path):
+def test_aggregate_skips_stale_data_version(tmp_path):
+    """A report scored against an older suite sha must never reach the leaderboard."""
     module = _load_aggregator()
     reports = tmp_path / "reports"
     reports.mkdir()
     (reports / "change__cn_fake.json").write_text(
-        json.dumps(_fake_report("cn:fake", "change")), encoding="utf-8"
+        json.dumps(_fake_report("cn:fake", "change", sha="0" * 64)), encoding="utf-8"
+    )
+    payload_path = tmp_path / "payload.json"
+    payload_path.write_text(json.dumps(_payload()), encoding="utf-8")
+
+    data = module.build(reports, payload_path)
+    boards = {board["id"]: board for board in data["boards"]}
+    assert boards["t4"]["state"] == "pending"
+    assert boards["t4"].get("rows", []) == []
+    assert boards["overall"]["state"] == "pending"
+
+
+def test_aggregate_leaves_boards_pending_when_partial(tmp_path):
+    module = _load_aggregator()
+    suite_shas = module._suite_shas()
+    reports = tmp_path / "reports"
+    reports.mkdir()
+    (reports / "change__cn_fake.json").write_text(
+        json.dumps(_fake_report("cn:fake", "change", sha=suite_shas["change"])), encoding="utf-8"
     )
     payload_path = tmp_path / "payload.json"
     payload_path.write_text(json.dumps(_payload()), encoding="utf-8")

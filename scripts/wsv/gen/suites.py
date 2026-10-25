@@ -203,7 +203,8 @@ def t7_row(plan: dict) -> dict:
     question = (
         f"The {describe(x_object)} appears only in the first image, and the "
         f"{describe(y_object)} appears only in the second image. In the shared camera "
-        f"view, where is the {describe(x_object)} relative to the {describe(y_object)}?"
+        f"view, what is the primary image-plane direction of the {describe(x_object)} "
+        f"relative to the {describe(y_object)}?"
     )
     meta = {
         "generator": GENERATOR_VERSION,

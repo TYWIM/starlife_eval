@@ -50,7 +50,24 @@ def _display_id(model_id: str) -> str:
     return value.split(":", 1)[1] if value.startswith("cn:") and value.count(":") >= 1 else value
 
 
-def _load_report(reports: Path, suite: str, model_id: str) -> dict[str, Any] | None:
+def _suite_shas() -> dict[str, str]:
+    """Current frozen sha256 per suite (stale reports from older data versions are skipped)."""
+    import sys
+
+    src = REPO_ROOT / "src"
+    if str(src) not in sys.path:
+        sys.path.insert(0, str(src))
+    from starlife_eval.wsv.tasks import dataset_sha256
+
+    return {suite: dataset_sha256(suite) for suite in SUITE_FOR_BOARD.values()}
+
+
+def _load_report(
+    reports: Path,
+    suite: str,
+    model_id: str,
+    expected_sha: str | None = None,
+) -> dict[str, Any] | None:
     safe = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in model_id)
     path = reports / f"{suite}__{safe}.json"
     if not path.exists():
@@ -61,6 +78,9 @@ def _load_report(reports: Path, suite: str, model_id: str) -> dict[str, Any] | N
         return None
     if not isinstance(data, dict) or not isinstance(data.get("per_task"), list):
         return None
+    report_sha = str((data.get("framework") or {}).get("dataset_sha256") or "")
+    if expected_sha is not None and report_sha != expected_sha:
+        return None  # stale data version: never aggregate it into the leaderboard
     data["__path"] = str(path)
     return data
 
@@ -90,11 +110,14 @@ def _covered_flags(report: Mapping[str, Any]) -> list[bool]:
 def _composite_rows(
     reports: Path,
     models: Sequence[str],
+    suite_shas: Mapping[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     available: dict[str, dict[str, Mapping[str, Any]]] = {}
     for suite in SUITE_ORDER:
         for model in models:
-            report = _load_report(reports, suite, model)
+            report = _load_report(
+                reports, suite, model, (suite_shas or {}).get(suite)
+            )
             if report is not None:
                 available.setdefault(model, {})[suite] = report
 
@@ -162,6 +185,7 @@ def _model_ids(reports: Path) -> list[str]:
 def build(reports: Path, payload_path: Path) -> dict[str, Any]:
     payload = json.loads(payload_path.read_text(encoding="utf-8"))
     models = _model_ids(reports)
+    suite_shas = _suite_shas()
     boards = {board["id"]: board for board in payload.get("boards") or ()}
     filled = 0
 
@@ -172,7 +196,7 @@ def build(reports: Path, payload_path: Path) -> dict[str, Any]:
         suite = SUITE_FOR_BOARD[board_id]
         rows = []
         for model in models:
-            report = _load_report(reports, suite, model)
+            report = _load_report(reports, suite, model, suite_shas.get(suite))
             if report is not None:
                 rows.append(_row_from_report(report))
         if not rows:
@@ -184,7 +208,7 @@ def build(reports: Path, payload_path: Path) -> dict[str, Any]:
 
     overall = boards.get("overall")
     if overall is not None:
-        composite = _composite_rows(reports, models)
+        composite = _composite_rows(reports, models, suite_shas)
         if composite:
             overall.pop("state", None)
             overall["rows"] = composite

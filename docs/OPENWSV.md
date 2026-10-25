@@ -44,7 +44,7 @@ OpenWSV（简称 **WSV**）是 StarLife-1-WSV 观测模型横测榜单的评测�
 | `change` | 1000 | T4 空间变化：每对一题×4 选项（appeared/disappeared/displaced/stayed same），由 pairs GT 确定性派生 | `suites/change_test.jsonl` | `7012ac77153c7321209c882b451a8a0f1771240e3979f5c18077a4eecbc3e302` |
 | `relation_change` | 600 | T5 关系变化：合成前后帧对，4 类各 150（appeared/disappeared/changed/stayed same） | `suites/relation_change_test.jsonl` | `0166b005bae55a5473a30a65c1398e84bae2a7c34631f1e2b62ec194475bba7f` |
 | `state_replay` | 1000 | T6 状态回放：同 pairs 帧对，250×4 题（existence/relation_type/rel_pos/contact），由 pairs GT 派生 | `suites/state_replay_test.jsonl` | `3bd06b52e7c71d0756fedd962c1d895c2516fbf1cae7f29b4e263e4e51962bb2` |
-| `cross_frame` | 400 | T7 跨帧不相交：两帧各出现不同的物体，问同一相机下的相对方位（4 类各 100） | `suites/cross_frame_test.jsonl` | `9f3e393223f7fb5fbc4ced3458978aae30496294fca5cf4ac37ccb7af0b26ccf` |
+| `cross_frame` | 400 | T7 跨帧不相交：两帧各出现不同的物体，问同一相机图像平面下 A 相对 B 的**主方向**（4 类各 100） | `suites/cross_frame_test.jsonl` | `d11e0ff5d72fea7fbe948edb8f567c470b4d567bdc3e6fd2ff102792ec9dfb91` |
 
 `load_suite(name)` 返回 `list[dict]`，每项固定字段：
 

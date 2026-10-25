@@ -41,7 +41,14 @@ def _display(model_id: str) -> str:
     return model_id.split(":", 1)[1] if model_id.startswith("cn:") else model_id
 
 
+def _suite_shas() -> dict[str, str]:
+    from starlife_eval.wsv.tasks import dataset_sha256
+
+    return {suite: dataset_sha256(suite) for suite in SUITE_ORDER}
+
+
 def _load(reports: Path) -> dict[str, dict[str, dict[str, Any]]]:
+    shas = _suite_shas()
     by_suite: dict[str, dict[str, dict[str, Any]]] = {}
     for path in sorted(reports.glob("*__*.json")):
         try:
@@ -52,6 +59,9 @@ def _load(reports: Path) -> dict[str, dict[str, dict[str, Any]]]:
         model = str((data.get("model") or {}).get("id") or "")
         if suite not in SUITE_ORDER or not model or not isinstance(data.get("per_task"), list):
             continue
+        report_sha = str((data.get("framework") or {}).get("dataset_sha256") or "")
+        if report_sha != shas.get(suite):
+            continue  # stale data version: do not report it as a current score
         # prefer the largest run per (suite, model): full run over smoke dirs
         by_suite.setdefault(suite, {})[model] = data
     return by_suite
