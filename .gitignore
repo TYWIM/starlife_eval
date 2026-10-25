@@ -15,6 +15,13 @@ dist/
 data/*
 !data/openwsv-data-1.0/
 !data/openwsv-data-1.0/*
+# ...but the unpacked bundle is local working data; only the 13 tracked parts ship
+data/openwsv-data-1.0/README.md
+data/openwsv-data-1.0/SHA256SUMS
+data/openwsv-data-1.0/data_v15/
+data/openwsv-data-1.0/suites/
+data/openwsv-data-1.0/v2data/
+/openwsv-data-1.0.zip
 data_v2/
 features/
 checkpoints/

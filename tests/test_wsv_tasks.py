@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import collections
 import re
 import sys
 from pathlib import Path
@@ -28,8 +29,24 @@ TASK_FIELDS = {"task_id", "suite", "question", "images", "choices", "answer", "a
 
 
 def test_suites_tuple_and_sizes():
-    assert SUITES == ("spatialmqa", "spatialmqa_relation", "pairs")
-    assert SUITE_SIZES == {"spatialmqa": 1612, "spatialmqa_relation": 305, "pairs": 1000}
+    assert SUITES == (
+        "spatialmqa",
+        "spatialmqa_relation",
+        "pairs",
+        "change",
+        "relation_change",
+        "state_replay",
+        "cross_frame",
+    )
+    assert SUITE_SIZES == {
+        "spatialmqa": 1612,
+        "spatialmqa_relation": 305,
+        "pairs": 1000,
+        "change": 1000,
+        "relation_change": 600,
+        "state_replay": 1000,
+        "cross_frame": 400,
+    }
 
 
 @pytest.mark.parametrize("suite", SUITES)
@@ -164,3 +181,136 @@ def test_framework_block_contract():
     assert block["detector"]["model"] == "IDEA-Research/grounding-dino-tiny"
     assert block["detector"]["box_threshold"] == 0.2
     assert block["detector"]["text_threshold"] == 0.2
+
+
+# ------------------------------------------------- T4/T6 derived text suites
+
+
+def _pairs_index():
+    return {task["meta"]["pair_id"]: task["meta"] for task in load_suite("pairs")}
+
+
+def test_change_suite_is_projected_from_pairs_gt():
+    pairs = _pairs_index()
+    tasks = load_suite("change")
+    assert len(tasks) == 1000
+    assert len({t["meta"]["pair_id"] for t in tasks}) == 1000
+    for task in tasks:
+        meta = task["meta"]
+        pair = pairs[meta["pair_id"]]
+        entities = pair["entities"]
+        slot = int(meta["target_slot"])
+        target = entities[slot]
+        assert target["type_key"] == meta["target_type"]
+        # description is the bare type name -> it must be unique inside the pair
+        assert sum(1 for e in entities if e["type_key"] == meta["target_type"]) == 1
+        change = meta["gt_change"]
+        assert change in {"appeared", "disappeared", "displaced", "none"}
+        if change == "none":
+            assert slot not in pair["changes"]
+            assert meta["present_after"] is True
+        else:
+            assert pair["changes"][slot] == change
+        assert len(task["choices"]) == 4
+        assert task["choices"][task["answer"]] in {
+            "It appeared.",
+            "It disappeared.",
+            "It was displaced.",
+            "It stayed the same.",
+        }
+        assert task["images"][0].endswith(pair["before"])
+        assert task["images"][1].endswith(pair["after"])
+
+
+def test_state_replay_suite_is_projected_from_pairs_after_state():
+    pairs = _pairs_index()
+    tasks = load_suite("state_replay")
+    probes = collections.Counter(task["meta"]["probe"] for task in tasks)
+    assert probes == {
+        "existence": 250,
+        "relation_type": 250,
+        "rel_pos": 250,
+        "contact": 250,
+    }
+    assert len({t["meta"]["pair_id"] for t in tasks}) == 1000
+    for task in tasks:
+        meta = task["meta"]
+        pair = pairs[meta["pair_id"]]
+        entities = pair["entities"]
+        answer_label = task["choices"][task["answer"]]
+        probe = meta["probe"]
+        assert 0 <= task["answer"] < len(task["choices"])
+        if probe == "existence":
+            slot = int(meta["target_slot"])
+            target = entities[slot]
+            assert target["type_key"] == meta["target_type"]
+            assert sum(1 for e in entities if e["type_key"] == meta["target_type"]) == 1
+            assert target["present_after"] == meta["gt_present_after"]
+            assert answer_label == ("Yes." if meta["gt_present_after"] else "No.")
+            assert len(task["choices"]) == 2
+            continue
+        from_slot, to_slot = int(meta["from_slot"]), int(meta["to_slot"])
+        from_ent, to_ent = entities[from_slot], entities[to_slot]
+        assert from_ent["type_key"] == meta["from_type"]
+        assert to_ent["type_key"] == meta["to_type"]
+        assert sum(1 for e in entities if e["type_key"] == meta["from_type"]) == 1
+        assert sum(1 for e in entities if e["type_key"] == meta["to_type"]) == 1
+        rel = next(
+            r for r in pair["relations"]
+            if r["from_slot"] == from_slot and r["to_slot"] == to_slot
+        )
+        assert rel["type"] == meta["relation_type"]
+        if probe == "relation_type":
+            assert len(task["choices"]) == 4
+            assert answer_label == meta["gt_relation_label"]
+        elif probe == "rel_pos":
+            assert len(task["choices"]) == 4
+            assert rel["rel_pos"] == meta["rel_pos"]
+            assert answer_label == meta["gt_rel_pos_label"]
+        else:  # contact
+            assert len(task["choices"]) == 2
+            assert rel["contact"] == meta["gt_contact"]
+            assert answer_label == ("Yes." if meta["gt_contact"] else "No.")
+
+
+def test_new_text_suites_use_choice_protocol():
+    from starlife_eval.wsv import runner
+
+    for suite in ("change", "relation_change", "state_replay", "cross_frame"):
+        assert runner._SUITE_PROTOCOL[suite] == "choice"
+        with pytest.raises(ValueError):
+            runner._adapter_name({"adapter": "wsv"}, suite)
+
+
+# ------------------------------------------------------ synthetic text suites
+
+
+def test_relation_change_suite_shape_and_balance():
+    tasks = load_suite("relation_change")
+    assert len(tasks) == 600
+    labels = collections.Counter(task["choices"][task["answer"]] for task in tasks)
+    assert labels == {
+        "It appeared.": 150,
+        "It disappeared.": 150,
+        "It changed.": 150,
+        "It stayed the same.": 150,
+    }
+    for task in tasks:
+        assert len(task["choices"]) == 4
+        assert len(task["images"]) == 2
+        assert all(p.startswith("openwsv-data-1.1/t5_frames/") for p in task["images"])
+        assert task["images"][0] != task["images"][1]
+        assert "How did the relation" in task["question"]
+
+
+def test_cross_frame_suite_shape():
+    tasks = load_suite("cross_frame")
+    assert len(tasks) == 400
+    labels = collections.Counter(task["choices"][task["answer"]] for task in tasks)
+    assert set(labels) <= {"Left.", "Right.", "Above.", "Below."}
+    assert sum(labels.values()) == 400
+    for task in tasks:
+        assert len(task["choices"]) == 4
+        assert len(task["images"]) == 2
+        assert all(p.startswith("openwsv-data-1.1/t7_frames/") for p in task["images"])
+        assert "first image" in task["question"] and "second image" in task["question"]

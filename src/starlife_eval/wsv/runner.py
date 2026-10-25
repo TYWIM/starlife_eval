@@ -96,6 +96,10 @@ _SUITE_PROTOCOL = {
     "spatialmqa": "choice",
     "spatialmqa_relation": "choice",
     "pairs": None,  # 结构化，不走文本提示词
+    "change": "choice",
+    "relation_change": "choice",
+    "state_replay": "choice",
+    "cross_frame": "choice",
 }
 
 _STRUCTURED_ADAPTERS = {"wsv", "wsv_api", "wsv-api", "structured"}

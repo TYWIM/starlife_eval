@@ -11,6 +11,11 @@ framework**:
 Only if every framework component is byte-identical can results from different model classes
 and different runs be compared.
 
+The T4/T6 text suites are **text projections of the structured pairs GT**: they ask the same
+atomic facts (what changed, what the after state is) with the same images, so text VLMs and
+structured world-state models can be scored on the same underlying tasks. T5/T7 add
+relation-change and cross-frame suites from the additive `openwsv-data-1.1` bundle.
+
 ## The frozen five
 
 | Item | Value | Where it lives |
@@ -29,11 +34,19 @@ and different runs be compared.
 | suite | n | description | applies to |
 | --- | ---: | --- | --- |
 | `spatialmqa` | 1,612 | single-image multiple-choice spatial relation questions (T1) | text VLMs |
-| `spatialmqa_relation` | 305 | the "Where is/are the X located relative to the Y?" subset of the above | text VLMs + structured models, same table |
+| `spatialmqa_relation` | 305 | the "Where is/are the X located relative to the Y?" subset of the above | text VLMs |
 | `pairs` | 1,000 | before/after frame pairs from the `dataset_spatial_v3` test split (T4–T6) | structured world-state models |
+| `change` | 1,000 | T4: one "what happened to the X?" question per test pair, derived from the pairs GT | text VLMs (paired with `pairs`) |
+| `relation_change` | 600 | T5: before/after relation-change questions on synthetic pairs (`openwsv-data-1.1`) | text VLMs |
+| `state_replay` | 1,000 | T6: after-state fact probes on the same test pairs (existence / relation / rel_pos / contact) | text VLMs (paired with `pairs`) |
+| `cross_frame` | 400 | T7: disjoint cross-frame questions ("X only in image 1, Y only in image 2") | text VLMs |
 
 `pairs` ground truth is produced by the synthetic scene generator (`spatial3d-1.0.0`, fixed
 seeds) — **not real footage**; relation/change/contact labels come from the generator.
+`change` and `state_replay` are deterministic projections of exactly that GT
+(`scripts/wsv/derive_text_suites.py`), so every text question has a structured counterpart.
+`relation_change` and `cross_frame` come from the additive `openwsv-scene-1.0.0` generator
+(`scripts/wsv/gen/`), also seeded and regenerable byte-for-byte.
 
 ## Data bundle (clone and reproduce)
 
@@ -50,6 +63,26 @@ export OPENWSV_DATA_ROOT=$PWD/data/openwsv-data-1.0
 The bundle contains 1,583 single-image question images, 2,000 frames (1,000 test pairs), both
 suite jsonl files and a per-file `SHA256SUMS`. 29 tasks reference images missing from the
 public release; they are scored as **not covered** and excluded from the accuracy denominator.
+
+### Additive suites: `openwsv-data-1.1`
+
+T5/T7 images are **not** part of the 1.0 bundle; they are generated deterministically (seed
+`20261020`, version `openwsv-scene-1.0.0`) with the bundled generator:
+
+```bash
+python -m scripts.wsv.gen            # writes data/openwsv-data-1.1/ (2,000 JPEGs + SHA256SUMS)
+python scripts/wsv/derive_text_suites.py   # T4/T6 jsonl from the frozen pairs GT
+```
+
+Run T4–T7 with a data root that contains both packages and keep the image paths prefixed:
+
+```bash
+python -m starlife_eval.wsv run --suite change --model <id> --adapter openai \
+    --base-url "$OPENAI_BASE_URL" --data-root data --out reports/openwsv-v2/
+```
+
+(`data/` contains the extracted `openwsv-data-1.0/` plus the generated
+`openwsv-data-1.1/`; the suite files point at `openwsv-data-1.0/...` / `openwsv-data-1.1/...`.)
 
 ## Quick start
 
@@ -94,17 +127,31 @@ Every accuracy carries a 95% task-level bootstrap CI (1,000 iterations, `seed=20
 
 ```
 src/starlife_eval/wsv/         # framework: config / detector / tasks / prompts / adapters / scoring / state / runner / cli
-src/starlife_eval/wsv/suites/  # frozen task files (jsonl, shipped in the package)
+src/starlife_eval/wsv/suites/  # frozen task files (7 suites, jsonl, shipped in the package)
 src/starlife_eval/verifiers/   # structured scoring (pair_protocol etc.)
 data/openwsv-data-1.0/         # 13 data-bundle parts + hashes
-scripts/wsv/                   # join/verify data bundle, run helpers
+data/openwsv-data-1.1/         # generated T5/T7 frames (local, reproducible; gitignored)
+scripts/wsv/                   # join/derive/generate/summarize helpers
+scripts/wsv/gen/               # openwsv-scene-1.0.0 T5/T7 generator (numpy + Pillow)
+scripts/wsv/derive_text_suites.py  # T4/T6 projections of the pairs GT
+scripts/wsv/build_site_data.py     # reports -> site/src/data/openwsv.generated.json
+scripts/wsv/summarize_results.py   # markdown tables + exact McNemar tests
 tests/                         # offline unit tests (pytest, no network/GPU)
 ```
+
+## Site
+
+The leaderboard lives in the nested `site/` repo (Vue 3 + Vite, static build) and is data-driven
+by `site/src/data/openwsv.generated.json`, which is regenerated from result JSONs with
+`python scripts/wsv/build_site_data.py` after a campaign. It reports coverage and CIs next to
+every score and links the upstream project repository.
 
 ## License and data notes
 
 - Code: MIT (see `LICENSE`).
-- Data: synthetic scenes generated by `spatial3d-1.0.0`; the spatial-relation question set is
-  derived from its public dataset under the original license.
+- Data: synthetic scenes generated by `spatial3d-1.0.0` (pairs) and `openwsv-scene-1.0.0`
+  (T5/T7); the spatial-relation question set is derived from its public dataset under the
+  original license. T4/T6 suites are deterministic text projections of the pairs GT and add
+  no images.
 - The benchmark reports metrics, coverage and CIs only; it makes no composite ranking claim
   beyond the published composite definition and uses no SOTA/#1 wording.

@@ -50,7 +50,7 @@ _ADAPTER_CHOICES = (
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m starlife_eval.wsv",
-        description="OpenWSV frozen-framework evaluation runner (T1 text VLM / T4-T6 structured).",
+        description="OpenWSV frozen-framework evaluation runner (T1 text VLM; T4-T7 text probes; pairs structured).",
     )
     parser.add_argument(
         "--list-suites",

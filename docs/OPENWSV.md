@@ -34,13 +34,17 @@ OpenWSV（简称 **WSV**）是 StarLife-1-WSV 观测模型横测榜单的评测�
 
 ---
 
-## 2. 数据集三套 suite
+## 2. 数据集：7 套 suite
 
 | suite | n | 说明 | 冻结文件 | sha256 |
 | --- | ---: | --- | --- | --- |
 | `spatialmqa` | 1612 | SpatialMQA 单图多选，T1 spatial relations（test 1076 + validation 536） | `suites/spatialmqa.jsonl` | `7be678f02a21b94696aef9aa31d6f3a27fed278d3a8bc66ae06d6e987d0c7e50` |
 | `spatialmqa_relation` | 305 | 上者中正则 `^Where (?:is\|are) the (?P<x>.+?) located relative to the (?P<y>.+?)\?$` 筛出的关系题子集（T1-relation） | 同 `suites/spatialmqa.jsonl`（加载时过滤） | 同上 |
 | `pairs` | 1000 | `dataset_spatial_v3` split=test 的 before/after 帧对，结构化世界模型 T4–T6 | `suites/pairs_test.jsonl` | `a29af6e171d55767622ba073af59ebb6d13a65cdbb2c69cb112632cb7500558b` |
+| `change` | 1000 | T4 空间变化：每对一题×4 选项（appeared/disappeared/displaced/stayed same），由 pairs GT 确定性派生 | `suites/change_test.jsonl` | `7012ac77153c7321209c882b451a8a0f1771240e3979f5c18077a4eecbc3e302` |
+| `relation_change` | 600 | T5 关系变化：合成前后帧对，4 类各 150（appeared/disappeared/changed/stayed same） | `suites/relation_change_test.jsonl` | `0166b005bae55a5473a30a65c1398e84bae2a7c34631f1e2b62ec194475bba7f` |
+| `state_replay` | 1000 | T6 状态回放：同 pairs 帧对，250×4 题（existence/relation_type/rel_pos/contact），由 pairs GT 派生 | `suites/state_replay_test.jsonl` | `3bd06b52e7c71d0756fedd962c1d895c2516fbf1cae7f29b4e263e4e51962bb2` |
+| `cross_frame` | 400 | T7 跨帧不相交：两帧各出现不同的物体，问同一相机下的相对方位（4 类各 100） | `suites/cross_frame_test.jsonl` | `9f3e393223f7fb5fbc4ced3458978aae30496294fca5cf4ac37ccb7af0b26ccf` |
 
 `load_suite(name)` 返回 `list[dict]`，每项固定字段：
 
@@ -63,6 +67,15 @@ OpenWSV（简称 **WSV**）是 StarLife-1-WSV 观测模型横测榜单的评测�
 > 发布提示：仓库 `.gitignore` 有 `*.jsonl` 规则（原本用于忽略本地数据），`wsv/suites/`
 > 下的冻结任务文件需要 `git add -f src/starlife_eval/wsv/suites/*.jsonl` 才会进版本库，
 > 否则 clone 后 `load_suite` 会报缺文件。sha256 以上表为准。
+
+派生/合成说明：
+
+* `change`/`state_replay` 由 `scripts/wsv/derive_text_suites.py` 从 `pairs_test.jsonl` 的
+  GT 确定性派生，不含新图像（路径复用 1.0 包内帧），`--check` 必须零漂移；每题 `meta`
+  带 `pair_id/probe/gt_*`，可与结构化模型逐原子事实对照；
+* `relation_change`/`cross_frame` 由 `scripts/wsv/gen/`（`openwsv-scene-1.0.0`，seed
+  20261020）确定性生成，图像在增量包 `openwsv-data-1.1/`；`meta` 只含结构化 GT，不进模型 Prompt。
+* 评测数据根需同时包含两个包（`--data-root data`），suite 内图像路径带包前缀。
 
 ---
 
@@ -92,6 +105,17 @@ OpenWSV（简称 **WSV**）是 StarLife-1-WSV 观测模型横测榜单的评测�
 * `accuracy` 只在覆盖题上算；`ci95` 是覆盖题正确性向量上的任务级 bootstrap
   （1,000 draws，分位法，seed=20261022）；
 * 两模型对比用精确 McNemar 检验（`scoring.mcnemar`，不一致对上的双侧二项精确 p 值）。
+
+**T4/T6 文本探针（与 `pairs` 同源）**：`change` / `state_replay` 各 1,000 题，每题对应
+`pairs_test.jsonl` 的一对帧；题目与 GT 由 `scripts/wsv/derive_text_suites.py` 从 pairs GT
+确定性派生（T4 问某物体的 change，T6 问 after-state 的存在性/关系类型/方位/接触）。
+因此同一原子事实既可让文本模型做多选，也可用结构化世界模型的逐 slot 输出复核；两套
+文本题的 sha256 随包冻结，重跑 `--check` 必须零漂移。
+
+**T5/T7 合成探针**：`relation_change`（600）与 `cross_frame`（400）来自增量数据包
+`openwsv-data-1.1`（生成器 `openwsv-scene-1.0.0`）；T5 问 before/after 的关系变化
+（appeared / disappeared / changed / stayed same），T7 问两帧不共视物体在同一相机下的
+相对方位（left / right / above / below）。两套目前只用于文本模型；结构化协议后续扩展。
 
 ### 4.2 结构化 pairs
 
@@ -184,6 +208,12 @@ python -m starlife_eval.wsv run --suite spatialmqa_relation \
 python -m starlife_eval.wsv run --suite pairs --model starlife-1-wsv-lite \
     --adapter wsv --api-url http://127.0.0.1:8890 --out reports/openwsv/ --limit 2
 
+# T4-T7 文本探针：数据根需同时包含解压后的 1.0 与生成的 1.1 数据包
+python -m starlife_eval.wsv run --suite change --model <id> --adapter openai \
+    --base-url https://api.example.com/v1 --data-root data --out reports/openwsv-v2/ --workers 3
+python -m starlife_eval.wsv run --suite relation_change --model <id> --adapter openai \
+    --base-url https://api.example.com/v1 --data-root data --out reports/openwsv-v2/ --workers 3
+
 # 薄封装示例（读环境变量）
 python scripts/wsv/run_suite.py
 ```
@@ -209,7 +239,7 @@ python scripts/wsv/run_suite.py
 src/starlife_eval/wsv/
 ├── __init__.py       # 导出 load_suite / run_suite
 ├── __main__.py       # python -m starlife_eval.wsv
-├── suites/           # 冻结任务文件（spatialmqa.jsonl / pairs_test.jsonl）
+├── suites/           # 7 套冻结任务文件（jsonl）
 ├── tasks.py          # load_suite / dataset_sha256 / describe_suites
 ├── prompts.py        # PROMPT_VERSION / build_prompt
 ├── adapters.py       # HttpVlmAdapter / WsvApiAdapter（异常不抛）
@@ -219,9 +249,14 @@ src/starlife_eval/wsv/
 ├── cli.py            # 命令行
 ├── config.py         # 框架配置（Lead 维护）
 └── detector.py       # 框架检测器（Lead 维护）
+scripts/wsv/gen/      # openwsv-scene-1.0.0：T5/T7 合成数据生成器
+scripts/wsv/derive_text_suites.py  # T4/T6 从 pairs GT 派生
+scripts/wsv/build_site_data.py     # 结果 JSON -> 站点数据
+scripts/wsv/summarize_results.py   # 汇总表 + McNemar
 tests/test_wsv_tasks.py
 tests/test_wsv_scoring.py
 tests/test_wsv_state.py
+tests/test_derive_and_site.py
 scripts/wsv/run_suite.py
 ```
 
@@ -239,7 +274,8 @@ python -m pytest tests/test_wsv_tasks.py tests/test_wsv_scoring.py \
 
 1. `detector.py` 由 Lead 维护（`FrozenDetector`）；未提供时可执行文件或依赖（torch /
    transformers / 权重缓存）缺失时，`pairs` 套件会以明确错误退出，文本 suite 不受影响。
-2. 当前只实现 T1（文本）与 pairs 结构化评测；事件级 P/R/F1 与世界状态回放指标不在本包内
-   （见 `verifiers/event_metrics.py` / `verifiers/state_replay.py`），pairs 只报 change/relation
-   五个维度。
+2. 当前实现 T1（文本）、pairs 结构化（T4–T6 变化/关系维度）与 T4–T7 文本探针；事件级
+   P/R/F1 与世界状态回放的**结构化**指标不在本包内（见 `verifiers/event_metrics.py` /
+   `verifiers/state_replay.py`），pairs 只报 change/relation 五个维度。T4/T6 文本题与
+   pairs 同源，结构化模型接入后可逐原子事实对照；T5/T7 目前只支持文本模型。
 3. `spatialmqa` 的 1,612 题是 T1 单项能力，不是综合排名；coverage < 100% 的行不可当作最终分。

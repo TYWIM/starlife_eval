@@ -57,6 +57,42 @@ SUITES = {
         "split": "test",
         "n": 1000,
     },
+    "change": {
+        "file": "suites/change_test.jsonl",
+        "kind": "text",
+        "capability": "T4",
+        "answer_type": "choice",
+        "split": "test",
+        "n": 1000,
+        "source": "derived from pairs_test.jsonl GT",
+    },
+    "relation_change": {
+        "file": "suites/relation_change_test.jsonl",
+        "kind": "text",
+        "capability": "T5",
+        "answer_type": "choice",
+        "split": "test",
+        "n": 600,
+        "source": "synthetic openwsv-data-1.1",
+    },
+    "state_replay": {
+        "file": "suites/state_replay_test.jsonl",
+        "kind": "text",
+        "capability": "T6",
+        "answer_type": "choice",
+        "split": "test",
+        "n": 1000,
+        "source": "derived from pairs_test.jsonl after-state GT",
+    },
+    "cross_frame": {
+        "file": "suites/cross_frame_test.jsonl",
+        "kind": "text",
+        "capability": "T7",
+        "answer_type": "choice",
+        "split": "test",
+        "n": 400,
+        "source": "synthetic openwsv-data-1.1",
+    },
 }
 
 SUITE_DIR = pathlib.Path(__file__).resolve().parent

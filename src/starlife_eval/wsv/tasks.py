@@ -1,6 +1,6 @@
 """OpenWSV 冻结任务套件加载（frozen data version）。
 
-三套 suite（名字与 ``SUITES`` 一致）：
+七套 suite（名字与 ``SUITES`` 一致）：
 
 ======================  ======  ===========================================
 suite                    n      说明
@@ -10,10 +10,16 @@ suite                    n      说明
                                  located relative to the Y?" 关系题
 ``pairs``                1000    ``dataset_spatial_v3`` split=test 的 before/after
                                  帧对（结构化世界模型输入，T4–T6）
+``change``               1000    由 pairs GT 派生的 T4 空间变化文本题（一 pair 一题）
+``relation_change``      600     T5 关系变化（合成数据 openwsv-data-1.1）
+``state_replay``         1000    由 pairs GT 派生的 T6 回放后状态事实题
+``cross_frame``          400     T7 跨帧不相交空间关系（合成数据 openwsv-data-1.1）
 ======================  ======  ===========================================
 
 任务文件位于本包 ``suites/``，属于**冻结框架**的一部分：内容一旦发布不得修改，
-数据版本用文件 sha256 标识（见 :func:`dataset_sha256`）。
+数据版本用文件 sha256 标识（见 :func:`dataset_sha256`）。四套文本套件是
+openwsv-1 的**增量**套件（不改动已有 spatialmqa / pairs 数据），其图像位于
+``openwsv-data-1.1`` 或复用 ``openwsv-data-1.0`` 的 pairs 帧。
 
 ``load_suite(name)`` 返回规范化后的 ``list[dict]``，每个 dict 固定字段：
 
@@ -38,6 +44,8 @@ __all__ = [
     "SUITES",
     "SUITE_SIZES",
     "SUITE_FILES",
+    "DERIVED_TEXT_SUITES",
+    "SYNTHETIC_TEXT_SUITES",
     "RELATION_PATTERN",
     "SUITE_DIR",
     "load_suite",
@@ -53,6 +61,10 @@ SUITE_FILES: Mapping[str, str] = {
     "spatialmqa": "spatialmqa.jsonl",
     "spatialmqa_relation": "spatialmqa.jsonl",
     "pairs": "pairs_test.jsonl",
+    "change": "change_test.jsonl",
+    "relation_change": "relation_change_test.jsonl",
+    "state_replay": "state_replay_test.jsonl",
+    "cross_frame": "cross_frame_test.jsonl",
 }
 
 #: 冻结样本量（与发布数据版本绑定；加载时校验，防静默漂移）
@@ -60,9 +72,27 @@ SUITE_SIZES: Mapping[str, int] = {
     "spatialmqa": 1612,
     "spatialmqa_relation": 305,
     "pairs": 1000,
+    "change": 1000,
+    "relation_change": 600,
+    "state_replay": 1000,
+    "cross_frame": 400,
 }
 
-SUITES: tuple[str, ...] = ("spatialmqa", "spatialmqa_relation", "pairs")
+SUITES: tuple[str, ...] = (
+    "spatialmqa",
+    "spatialmqa_relation",
+    "pairs",
+    "change",
+    "relation_change",
+    "state_replay",
+    "cross_frame",
+)
+
+#: 由 pairs GT 派生的文本套件（直接按行加载，不做额外过滤）
+DERIVED_TEXT_SUITES: tuple[str, ...] = ("change", "state_replay")
+
+#: 合成文本套件（openwsv-data-1.1；直接按行加载）
+SYNTHETIC_TEXT_SUITES: tuple[str, ...] = ("relation_change", "cross_frame")
 
 #: T1-relation 子集定义（冻结）：SpatialMQA 中形如
 #: "Where is/are the X located relative to the Y?" 的 305 题。
@@ -252,12 +282,14 @@ def load_suite(name: str) -> list[dict[str, Any]]:
         tasks = [_pairs_task(row) for row in rows]
     elif name == "spatialmqa":
         tasks = [_text_task(row, "spatialmqa") for row in rows]
-    else:  # spatialmqa_relation
+    elif name == "spatialmqa_relation":
         tasks = []
         for row in rows:
             match = RELATION_PATTERN.match(str(row.get("question", "")))
             if match is not None:
                 tasks.append(_text_task(row, "spatialmqa_relation", match))
+    else:  # change / relation_change / state_replay / cross_frame：行即规范化文本任务
+        tasks = [_text_task(row, name) for row in rows]
 
     expected = SUITE_SIZES[name]
     if len(tasks) != expected:
@@ -287,6 +319,10 @@ def describe_suites() -> list[dict[str, Any]]:
         "spatialmqa": "SpatialMQA single-image multiple choice (T1 spatial relations)",
         "spatialmqa_relation": "T1-relation subset: 'Where is/are the X located relative to the Y?'",
         "pairs": "dataset_spatial_v3 test before/after pairs (structured world model, T4-T6)",
+        "change": "T4 spatial change text probes derived from the pairs GT (one per pair)",
+        "relation_change": "T5 relation change, synthetic before/after pairs (openwsv-data-1.1)",
+        "state_replay": "T6 after-state fact probes derived from the pairs GT (text projection)",
+        "cross_frame": "T7 cross-frame disjoint spatial relations, synthetic pairs (openwsv-data-1.1)",
     }
     out = []
     for name in SUITES:
