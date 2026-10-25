@@ -1,15 +1,16 @@
 # OpenWSV 榜单结果
 
 评测协议：[`docs/OPENWSV.md`](OPENWSV.md)（冻结框架 `openwsv-1`）。
-生成日期：2026-10-23，仓库 `starlife_eval`。
+生成日期：2026-10-25，仓库 `starlife_eval`（评测代码 commit 以报告内 `framework.scorer` 为准）。
 
 分数口径：确定性判分、无 LLM judge；**未覆盖 ≠ 错**，准确率只在覆盖题上计算并给出
-覆盖率；95% CI 为任务级 bootstrap（1,000 draws，seed=20261022）。**T1 是单项能力，
-不是综合排名**；coverage 低于 100% 的行不可当作最终分。
+覆盖率；95% CI 为任务级 bootstrap（1,000 draws，seed=20261022）；模型间差异用精确
+McNemar 检验（差异题对）。**T1 是单项能力，不是综合排名**；coverage 低于 100% 的行不可
+当作最终分。
 
 ---
 
-## 已出分：T1 spatial relations
+## 一、T1 空间关系（历史读数，沿用 v2 战役）
 
 ### T1 · SpatialMQA 全量 1,612 题
 
@@ -29,88 +30,142 @@
   按未覆盖剔除分母（1,611/1,612），其余模型全部覆盖。
 * 空输出（reasoning 模型耗尽 `max_tokens`）记为可重试错误、按未覆盖处理，不判错。
 
-分 split 读数（同一 v2 战役）：
-
-| 模型 | test (n=1076) | validation (n=536) |
-| --- | ---: | ---: |
-| qwen3.8-flash | 0.7649 | 0.7668 |
-| deepseek-flash | 0.7426 | 0.7612 |
-| glm-5.3-flash | 0.7351 | 0.7463 |
-| minimax-m3.1-flash | 0.6372 (n=1075) | 0.5951 |
-| mimo-v2.6-pro | 0.5437 | 0.5504 |
-
 ### T1-relation · 关系题子集 305 题
 
 数据：`spatialmqa_relation` = 全量中形如
 `Where is/are the X located relative to the Y?` 的 305 题（正则过滤，见
 `wsv/tasks.py::RELATION_PATTERN`）。
 
-| 排名 | 模型 | 覆盖率 | n | 准确率 |
-| ---: | --- | ---: | ---: | ---: |
-| 1 | glm-5.3-flash | 100.0% | 305 | **0.9279** |
-| 2 | qwen3.8-flash | 100.0% | 305 | **0.9213** |
-| 3 | deepseek-flash | 100.0% | 305 | **0.9082** |
-| 4 | minimax-m3.1-flash | 99.67% | 304 | **0.8816** |
-| 5 | mimo-v2.6-pro | 99.67% | 304 | **0.8684** |
+| 排名 | 模型 | 覆盖率 | n | 准确率 | 95% CI |
+| ---: | --- | ---: | ---: | ---: | --- |
+| 1 | glm-5.3-flash | 100.0% | 305 | **0.9279** | [0.8984, 0.9541] |
+| 2 | qwen3.8-flash | 100.0% | 305 | **0.9213** | [0.8918, 0.9476] |
+| 3 | deepseek-flash | 100.0% | 305 | **0.9082** | [0.8721, 0.9377] |
+| 4 | minimax-m3.1-flash | 99.67% | 304 | **0.8816** | [0.8454, 0.9178] |
+| 5 | mimo-v2.6-pro | 99.67% | 304 | **0.8684** | [0.8257, 0.9046] |
 
-* 子集的 95% CI 未在本轮记录（subset 读数来自 v2 战役的逐题预测重算）；需要时用
-  `scoring.bootstrap_ci` 在 305 题覆盖向量上重算（seed=20261022，1,000 draws）。
 * minimax-m3.1-flash / mimo-v2.6-pro 各有 1 题未覆盖（provider 侧 404），分母 304。
 
 ---
 
-## 待跑：T4–T6（结构化世界模型）
+## 二、T4–T7 文本套件（4 家文本模型，openwsv-1）
 
-`pairs` 套件（`dataset_spatial_v3` split=test，1,000 对）的 OpenWSV 框架读数**待跑**，
-需要两件东西到位：框架检测器 `wsv/detector.py`（Lead 冻结）与可达的
-StarLife-1-WSV-Lite `POST /predict` 服务。
+套件：`change`（T4，1,000）、`state_replay`（T6，1,000）、`relation_change`（T5，
+600）、`cross_frame`（T7，400）。全部为四选一确定性判分，覆盖不足的行单独标注。
 
-| 能力 | suite | n | 状态 |
-| --- | --- | ---: | --- |
-| T4 state change / world-state consistency | `pairs` | 1000 | **待跑** |
-| T5 object & attribute understanding | `pairs` | 1000 | **待跑** |
-| T6 compositional reasoning | `pairs` | 1000 | **待跑** |
+### T4 Spatial change（`change`，1,000 题）
 
-跑法（服务就绪后）：
+| 排名 | 模型 | 覆盖率 | n | 准确率 | 95% CI |
+| ---: | --- | ---: | ---: | ---: | --- |
+| 1 | glm-5.3-flash | 100.00% | 1000 | **0.9580** | [0.9450, 0.9700] |
+| 2 | deepseek-v4.1-flash | 96.70% | 1000 | **0.9493** | [0.9359, 0.9628] |
+| 3 | minimax-m3.1-flash | 100.00% | 1000 | **0.9350** | [0.9190, 0.9500] |
+| 4 | mimo-v2.6-pro | 98.60% | 1000 | **0.9219** | [0.9047, 0.9381] |
 
-```bash
-python -m starlife_eval.wsv run --suite pairs --model starlife-1-wsv-lite \
-    --adapter wsv --api-url http://127.0.0.1:8890 --out reports/openwsv/
-```
+### T5 Relation change（`relation_change`，600 题）
 
-`pairs` 会报 `change_top1 / change_macro_f1 / relation_type_acc / rel_pos_acc /
-attrs_acc`（各带 pair 级 bootstrap CI），单个模型 2 次调用/对（forward + reversed，
-方向匹配协议，见 `docs/OPENWSV.md` §4.2）。
+| 排名 | 模型 | 覆盖率 | n | 准确率 | 95% CI |
+| ---: | --- | ---: | ---: | ---: | --- |
+| 1 | glm-5.3-flash | 100.00% | 600 | **0.9800** | [0.9683, 0.9900] |
+| 2 | minimax-m3.1-flash | 100.00% | 600 | **0.9700** | [0.9567, 0.9833] |
+| 3 | deepseek-v4.1-flash | 98.00% | 600 | **0.9575** | [0.9422, 0.9745] |
+| 4 | mimo-v2.6-pro | 91.50% | 600 | **0.9271** | [0.9071, 0.9490] |
 
-> 兼容性说明：仓库里曾有一个 **provisional** 的 60 对结构化读数
-> （`docs/RESULTS_STRUCTURED_TRACK.md`，change top-1 91.45% 等）。那一轮用的是
-> **GT 框**、旧采样（60 对）与旧判分脚本，和 OpenWSV 的"框架检测器 + 1,000 对 +
-> `openwsv-1`"口径不可比，**不进本榜**；T4–T6 以 `pairs` 套件重跑结果为准。
+### T6 State replay（`state_replay`，1,000 题）
+
+| 排名 | 模型 | 覆盖率 | n | 准确率 | 95% CI |
+| ---: | --- | ---: | ---: | ---: | --- |
+| 1 | starlife-1-wsv-lite（structured） | 63.80% | 1000 | **0.9530** | [0.9357, 0.9687] |
+| 2 | glm-5.3-flash | 100.00% | 1000 | **0.8100** | [0.7840, 0.8350] |
+| 3 | deepseek-v4.1-flash | 97.70% | 1000 | **0.8096** | [0.7861, 0.8342] |
+| 4 | minimax-m3.1-flash | 100.00% | 1000 | **0.7970** | [0.7700, 0.8200] |
+| 5 | mimo-v2.6-pro | 94.80% | 1000 | **0.7532** | [0.7247, 0.7785] |
+
+### T7 Cross-frame disjoint（`cross_frame`，400 题）
+
+| 排名 | 模型 | 覆盖率 | n | 准确率 | 95% CI |
+| ---: | --- | ---: | ---: | ---: | --- |
+| 1 | deepseek-v4.1-flash | 99.50% | 400 | **0.9950** | [0.9874, 1.0000] |
+| 2 | minimax-m3.1-flash | 100.00% | 400 | **0.9425** | [0.9199, 0.9650] |
+| 3 | glm-5.3-flash | 99.75% | 400 | **0.8496** | [0.8170, 0.8822] |
+| 4 | mimo-v2.6-pro | 56.50% | 400 | **0.6150** | [0.5442, 0.6814] |
+
+### 综合分（T4–T7 等权平均）
+
+只有四项套件全部完成的模型进入综合分；综合分 = 四套件"覆盖题准确率"的等权平均，
+CI 为按能力分层的 bootstrap（seed=20261022，1,000 draws）。
+
+| 排名 | 模型 | n | 综合分 | 95% CI | 覆盖率（T4–T7） |
+| ---: | --- | ---: | ---: | --- | ---: |
+| 1 | deepseek-v4.1-flash | 3000 | **0.9279** | [0.9193, 0.9360] | 97.67% |
+| 2 | minimax-m3.1-flash | 3000 | **0.9111** | [0.9007, 0.9213] | 100.00% |
+| 3 | glm-5.3-flash | 3000 | **0.8994** | [0.8880, 0.9103] | 99.97% |
+| 4 | mimo-v2.6-pro | 3000 | **0.8043** | [0.7853, 0.8219] | 90.30% |
+
+* T4/T5/T7 已接近天花板（≥92%），区分度主要来自 T6（75–81%）与覆盖率；综合分层面
+  deepseek 的 CI 与 minimax 部分重叠，与 glm 不重叠。
+* 精确 McNemar 显著性见 `reports/openwsv-v2/TABLES.md`。
 
 ---
 
-## 未参与本轮
+## 三、结构化模型读数（StarLife-1-WSV-Lite，部署服务口径）
 
-* `claude-opus-5-5`（网关配额耗尽）、`seed-2.1-turbo`（未启动）。
-* MindEdit（T3）在 v2 战役中撤回（曾把截断空回复误判为错），不参与本榜。
+`starlife-1-wsv-lite` 走结构化世界状态协议（`/v1/events`，自备检测器，**不使用**
+框架检测框），由确定性映射把世界状态投影到同一答案空间；映射不出记未覆盖。
+本轮只完成了 T6（`state_replay`，1,000 题）：
+
+| 能力 | n | 覆盖率 | 准确率（覆盖题） | 95% CI |
+| --- | ---: | ---: | ---: | --- |
+| T6 state_replay | 1000 | 63.80% | **0.9530** | [0.9357, 0.9687] |
+
+映射规则（冻结、可复现）：
+
+* existence：按 `target_type` 找实体，`present_after` 为真 → Yes；
+* relation_type / rel_pos：按 `from_type`/`to_type` 配对，取 `rel_prob ≥ 0.5` 中概率最大
+  的关系，读 `rel_type` / `rel_pos`；
+* contact：同一关系下 `contact_prob ≥ 0.5` → Yes；
+* 找不到关系 → 未覆盖（不计错）。
+
+分探针读数（覆盖题准确率 / 覆盖率）：existence 97.2% / 100%，rel_pos 98.5% / 54.0%，
+relation_type 97.6% / 49.6%，contact 86.0% / 51.6%。它的特点是**覆盖到就答得准，但
+"不敢答"的比例高**：覆盖率显著低于文本模型（91.5–100%），对照综合分口径时不能只看
+准确率。该模型只有 T6 单项，暂不进入综合分；T4/T5/T7 待服务侧变化头修复与
+域差问题定调后另行评测（详见 `docs/REPORT_OPENWSV.md` §10.3）。
 
 ---
 
-## 复现与产物
+## 四、未解析回复诊断
 
-* 逐题预测/原始响应随各轮运行产物发布；判分脚本在本仓库
-  `src/starlife_eval/wsv/`（scoring/state/runner）。
-* 数据版本：`spatialmqa` sha256 `7be678f02a21b94696aef9aa31d6f3a27fed278d3a8bc66ae06d6e987d0c7e50`；
-  `pairs` sha256 `a29af6e171d55767622ba073af59ebb6d13a65cdbb2c69cb112632cb7500558b`。
+首轮跑分共 361 条回复未解析为有效选项（不算错、按未覆盖处理），已用冻结提示词逐条
+重放并落盘 `reports/openwsv-v2/diagnostics/unparsable_replay.jsonl`（模型/套件/原始
+回复/错误/选项/金标）。
+
+* 分布：mimo T7 174、mimo T5 51、mimo T6 51、mimo T4 14、deepseek T4 33、deepseek
+  T6 23、deepseek T5 12、deepseek T7 2、glm T7 1。
+* 典型形态：mimo 在 T7 大量输出"解释性长句/推理过程"而非字母；deepseek 为 reasoning
+  模型，部分回复在 `max_tokens` 内未收敛到答案。
+* 处置：保持解析器冻结，覆盖率如实报告；不为单一模型放宽解析规则（避免口径漂移）。
+
+---
+
+## 五、复现与产物
+
+* 逐题预测/原始响应随运行产物发布；判分脚本在本仓库 `src/starlife_eval/wsv/`
+  （scoring/runner），榜单表格由 `scripts/wsv/summarize_results.py` 生成。
+* 数据版本：`spatialmqa` sha256 `7be678f0…`；`pairs` sha256 `a29af6e1…`；
+  `change` `7012ac77…`；`state_replay` `3bd06b52…`；`relation_change` `0166b005…`；
+  `cross_frame` `d11e0ff5…`。
 * 榜单 JSON 契约见 `docs/OPENWSV.md` §5；站点数据生成读取
   `framework / suite / n / model / metrics / per_task` 字段。
 
 ---
 
-## 口径提醒
+## 六、口径提醒
 
 1. 这些都是**单项能力**读数，不构成"综合智能"或"SOTA"结论。
 2. 存在 provider 侧不可控因素（版本、隐藏 system prompt、限流）：runner 统一传
    `temperature=0`、同一提示词模板；模板公开在 `wsv/prompts.py`。
-3. 覆盖率 < 100% 的行（minimax / mimo 各 1 题）不能当作最终分直接比较；差异在 1 题量级时
-   也与 CI 宽度同阶，不应过度解读名次。
+3. 覆盖率 < 100% 的行不能当作最终分直接比较；差异在 1–2 题量级时与 CI 同阶，不应
+   过度解读名次。
+4. T4/T5/T7 的头部差距很小（天花板效应），若要做强区分，需要新增更难的任务族
+   （T2 位姿 / T3 跨视角 / T8 抽象几何 / 更难负样本），而不是在现有题上反复调参。

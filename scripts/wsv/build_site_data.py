@@ -94,7 +94,9 @@ def _row_from_report(report: Mapping[str, Any]) -> dict[str, Any]:
         "value": round(float(metrics.get("accuracy") or 0.0), 4),
         "ci": [round(float(v), 4) for v in (metrics.get("ci95") or [0.0, 0.0])],
         "coverage": round(float(metrics.get("coverage") or 0.0), 4),
-        "usesHarnessBoxes": str(meta.get("kind", "vlm")) == "structured",
+        "usesHarnessBoxes": bool(
+            meta.get("uses_harness_boxes", str(meta.get("kind", "vlm")) == "structured")
+        ),
         "n": int(report.get("n") or len(report.get("per_task") or ())),
     }
 
