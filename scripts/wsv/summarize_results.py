@@ -62,6 +62,13 @@ def _load(reports: Path) -> dict[str, dict[str, dict[str, Any]]]:
         report_sha = str((data.get("framework") or {}).get("dataset_sha256") or "")
         if report_sha != shas.get(suite):
             continue  # stale data version: do not report it as a current score
+        covered = sum(1 for t in data.get("per_task") or () if t.get("covered"))
+        if covered == 0:
+            continue  # no valid reading: never list a 0-coverage run as a score
+        tasks = data.get("per_task") or ()
+        transport = sum(1 for t in tasks if str(t.get("error") or "").startswith("HTTP "))
+        if transport > max(5, 0.05 * len(tasks)):
+            continue  # provider/transport failure dominated the run: not a model reading
         # prefer the largest run per (suite, model): full run over smoke dirs
         by_suite.setdefault(suite, {})[model] = data
     return by_suite

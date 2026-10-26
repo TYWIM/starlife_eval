@@ -45,5 +45,8 @@ _local/
 AGENTS.md
 reports/
 
+# Downloaded papers (never pushed)
+literature/
+
 # Leaderboard site repo (nested git, pushed separately)
 /site/

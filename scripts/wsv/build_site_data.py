@@ -81,6 +81,17 @@ def _load_report(
     report_sha = str((data.get("framework") or {}).get("dataset_sha256") or "")
     if expected_sha is not None and report_sha != expected_sha:
         return None  # stale data version: never aggregate it into the leaderboard
+    covered = sum(
+        1 for t in data.get("per_task") or () if isinstance(t, Mapping) and t.get("covered")
+    )
+    if covered == 0:
+        return None  # no valid reading: a run that never answered anything is not a score
+    tasks = data.get("per_task") or ()
+    transport = sum(
+        1 for t in tasks if isinstance(t, Mapping) and str(t.get("error") or "").startswith("HTTP ")
+    )
+    if transport > max(5, 0.05 * len(tasks)):
+        return None  # provider/transport failure dominated the run: not a model reading
     data["__path"] = str(path)
     return data
 
@@ -136,6 +147,8 @@ def _composite_rows(
             sum(1 for t in per_suite[s].get("per_task") or () if t.get("covered"))
             for s in SUITE_ORDER
         )
+        if n_covered == 0:
+            continue
         rows.append(
             {
                 "id": _display_id(model),
