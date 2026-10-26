@@ -39,6 +39,12 @@ SUITE_FOR_BOARD = {
     "t6": "state_replay",
     "t7": "cross_frame",
 }
+#: Boards whose readings come from a single frozen suite. New result files replace
+#: same-id baseline rows; legacy rows with no report on disk are preserved.
+SINGLE_BOARD_SUITES = {
+    "t1": "spatialmqa",
+    "t1_relation": "spatialmqa_relation",
+}
 SUITE_ORDER: tuple[str, ...] = tuple(SUITE_FOR_BOARD[board] for board in CAPABILITY_BOARDS)
 BOOTSTRAP_DRAWS = 1000
 BOOTSTRAP_SEED = 20261022
@@ -59,7 +65,8 @@ def _suite_shas() -> dict[str, str]:
         sys.path.insert(0, str(src))
     from starlife_eval.wsv.tasks import dataset_sha256
 
-    return {suite: dataset_sha256(suite) for suite in SUITE_FOR_BOARD.values()}
+    suites = list(SUITE_FOR_BOARD.values()) + list(SINGLE_BOARD_SUITES.values())
+    return {suite: dataset_sha256(suite) for suite in suites}
 
 
 def _load_report(
@@ -219,6 +226,27 @@ def build(reports: Path, payload_path: Path) -> dict[str, Any]:
         board.pop("state", None)
         board["rows"] = sorted(rows, key=lambda r: r["value"], reverse=True)
         board["n"] = int(max(r.get("n") or 0 for r in rows))
+        filled += 1
+
+    for board_id, suite in SINGLE_BOARD_SUITES.items():
+        board = boards.get(board_id)
+        if board is None:
+            continue
+        legacy = {str(r.get("id")): r for r in board.get("rows") or ()}
+        rows = []
+        for model in models:
+            report = _load_report(reports, suite, model, suite_shas.get(suite))
+            if report is None:
+                continue
+            row = _row_from_report(report)
+            legacy.pop(row["id"], None)  # a fresh reading supersedes the legacy row
+            rows.append(row)
+        if not rows:
+            continue
+        board.pop("state", None)
+        merged = list(legacy.values()) + rows
+        board["rows"] = sorted(merged, key=lambda r: r["value"], reverse=True)
+        board["n"] = int(max(r.get("n") or 0 for r in merged))
         filled += 1
 
     overall = boards.get("overall")
